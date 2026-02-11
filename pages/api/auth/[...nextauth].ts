@@ -89,27 +89,22 @@ export const authOptions: NextAuthOptions = {
   //     return token;
   //   },
   // }
-  callbacks: {
-  async jwt({ token, account, profile }) {
-    // primera vez que el usuario inicia sesión
-    // 
-    if (account && profile) {
-      token.id = profile.sub;
-      token.email = profile.email;
-      token.name = profile.name;
-      // token.picture = profile.picture;s
-    }
-    return token;
+callbacks: {
+  async signIn({ user, account, profile }) {
+    return true;
   },
-
   async session({ session, token }) {
     if (session.user) {
-      session.user.id = token.id as string;
-      session.user.email = token.email as string;
-      session.user.name = token.name as string;
-      session.user.image = token.picture as string;
+      (session.user as any).id = token.sub!;
+      (session.user as any).isAdmin = session.user.email === "sistemas@ddonpedrosrl.com";
     }
     return session;
+  },
+  async jwt({ token, user }) {
+    if (user) {
+      token.id = user.id;
+    }
+    return token;
   },
 },
   
