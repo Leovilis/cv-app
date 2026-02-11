@@ -88,15 +88,16 @@ export const authOptions: NextAuthOptions = {
   //     }
   //     return token;
   //   },
-  // },
+  // }
   callbacks: {
   async jwt({ token, account, profile }) {
     // primera vez que el usuario inicia sesión
+    // 
     if (account && profile) {
       token.id = profile.sub;
       token.email = profile.email;
       token.name = profile.name;
-      // token.picture = profile.picture;
+      // token.picture = profile.picture;s
     }
     return token;
   },
