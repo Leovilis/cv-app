@@ -5,6 +5,8 @@ import { getFirestore } from '@/lib/firebase';
 import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
+  
+
   providers: [
     // Login con Google (para usuarios normales)
     GoogleProvider({
@@ -73,20 +75,42 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin', // Página personalizada de login
   },
   
+  // callbacks: {
+  //   async session({ session, token }) {
+  //     if (session.user) {
+  //       session.user.email = token.email;
+  //     }
+  //     return session;
+  //   },
+  //   async jwt({ token, user }) {
+  //     if (user) {
+  //       token.email = user.email;
+  //     }
+  //     return token;
+  //   },
+  // },
   callbacks: {
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.email = token.email;
-      }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.email = user.email;
-      }
-      return token;
-    },
+  async jwt({ token, account, profile }) {
+    // primera vez que el usuario inicia sesión
+    if (account && profile) {
+      token.id = profile.sub;
+      token.email = profile.email;
+      token.name = profile.name;
+      // token.picture = profile.picture;
+    }
+    return token;
   },
+
+  async session({ session, token }) {
+    if (session.user) {
+      session.user.id = token.id as string;
+      session.user.email = token.email as string;
+      session.user.name = token.name as string;
+      session.user.image = token.picture as string;
+    }
+    return session;
+  },
+},
   
   session: {
     strategy: 'jwt',
