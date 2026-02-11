@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# configuracion local
+.env.local
+service-account-key.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
