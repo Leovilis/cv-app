@@ -6,9 +6,13 @@ let db: Firestore | null = null;
 
 export const getStorage = () => {
   if (!storage) {
+    const credentials = process.env.GOOGLE_CLOUD_CREDENTIALS 
+      ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS)
+      : undefined;
+
     storage = new Storage({
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE,
+      credentials: credentials,
     });
   }
   return storage;
@@ -16,13 +20,17 @@ export const getStorage = () => {
 
 export const getFirestore = () => {
   if (!db) {
+    const credentials = process.env.GOOGLE_CLOUD_CREDENTIALS 
+      ? JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS)
+      : undefined;
+
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE,
-      databaseId: 'cv-app', // Especificar la base de datos personalizada
+      credentials: credentials,
+      databaseId: 'cv-app',
     });
   }
   return db;
 };
 
-export const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET!;
+export const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || '';
