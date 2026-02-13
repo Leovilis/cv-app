@@ -1,117 +1,70 @@
-import NextAuth, { NextAuthOptions } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { getFirestore } from '@/lib/firebase';
-import bcrypt from 'bcryptjs';
+
+import NextAuth, { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
-  
-
   providers: [
-    // Login con Google (para usuarios normales)
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    
-    // Login con Email/Password (para admin)
     CredentialsProvider({
-      id: 'credentials',
-      name: 'Email y Contraseña',
+      id: 'admin-credentials',
+      name: 'Admin',
       credentials: {
-        email: { 
-          label: "Email", 
-          type: "email", 
-          placeholder: "admin@ddonpedrosrl.com" 
-        },
-        password: { 
-          label: "Contraseña", 
-          type: "password" 
-        }
+        email: { label: "Email", type: "email" },
+        password: { label: "Contraseña", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email y contraseña son requeridos');
-        }
+      async authorize(credentials, req) {
+        // Credenciales de admin (cámbialas por las que prefieras)
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "sistemas@ddonpedrosrl.com";
+        const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin123!";
 
-        try {
-          const db = getFirestore();
-          
-          // Buscar usuario en la colección 'admins'
-          const userDoc = await db.collection('admins').doc(credentials.email).get();
-          
-          if (!userDoc.exists) {
-            throw new Error('Usuario no encontrado');
-          }
-
-          const userData = userDoc.data();
-          
-          // Verificar contraseña
-          const isValidPassword = await bcrypt.compare(
-            credentials.password, 
-            userData?.password || ''
-          );
-          
-          if (!isValidPassword) {
-            throw new Error('Contraseña incorrecta');
-          }
-
-          // Retornar usuario autenticado
+        if (
+          credentials?.email === ADMIN_EMAIL &&
+          credentials?.password === ADMIN_PASSWORD
+        ) {
           return {
-            id: credentials.email,
-            email: credentials.email,
-            name: userData?.name || 'Admin',
-            image: userData?.image || null,
-          };
-        } catch (error) {
-          console.error('Error en autenticación:', error);
-          throw new Error('Error al autenticar');
+            id: "admin-user",
+            email: ADMIN_EMAIL,
+            name: "Administrador",
+            isAdmin: true,
+          } as any;
         }
+        
+        return null;
       }
-    })
+    }),
   ],
-  
   pages: {
-    signIn: '/auth/signin', // Página personalizada de login
+    signIn: '/auth/signin',   // ← ESTA LINEA ES LA SOLUCIÓN
+  },
+
+  session: {
+    strategy: "jwt",
   },
   
-  // callbacks: {
-  //   async session({ session, token }) {
-  //     if (session.user) {
-  //       session.user.email = token.email;
-  //     }
-  //     return session;
-  //   },
-  //   async jwt({ token, user }) {
-  //     if (user) {
-  //       token.email = user.email;
-  //     }
-  //     return token;
-  //   },
-  // }
-callbacks: {
-  async signIn({ user, account, profile }) {
-    return true;
-  },
-  async session({ session, token }) {
-    if (session.user) {
-      (session.user as any).id = token.sub!;
-      (session.user as any).isAdmin = session.user.email === "sistemas@ddonpedrosrl.com";
+  callbacks: {
+    async redirect({ url, baseUrl }) {
+    // Si es un callback relativo (lo normal)
+    if (url.startsWith("/")) {
+      return baseUrl + url;
     }
-    return session;
-  },
-  async jwt({ token, user }) {
-    if (user) {
-      token.id = user.id;
+
+    // Si Google intenta volver al signin → forzamos home
+    if (url.includes("/auth/signin")) {
+      return baseUrl;
     }
-    return token;
+
+    // Cualquier otro caso permitido
+    if (new URL(url).origin === baseUrl) {
+      return url;
+    }
+
+    return baseUrl;
   },
 },
-  
-  session: {
-    strategy: 'jwt',
-  },
-  
   secret: process.env.NEXTAUTH_SECRET,
 };
 

@@ -1,3 +1,4 @@
+
 import { useSession, signIn, signOut } from 'next-auth/react';
 
 export const useAuth = () => {
@@ -10,8 +11,8 @@ export const useAuth = () => {
     user: session?.user,
     loading,
     authenticated,
-    isAdmin: session?.user?.email === 'sistemas@ddonpedrosrl.com',
-    signIn: () => signIn(), // Redirige a /auth/signin (página personalizada)
+    isAdmin: (session?.user as any)?.isAdmin === true,
+    signIn: () => signIn(),
     signOut: () => signOut({ callbackUrl: '/' }),
   };
 };
