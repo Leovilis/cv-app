@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import { getFirestore } from '@/lib/firebase';
+import { getFirestore } from '@/lib/firebase-admin';
 import { CV } from '@/lib/types';
 
 export default async function handler(
@@ -31,12 +31,12 @@ export default async function handler(
     const snapshot = await db.collection('cvs').orderBy('uploadedAt', 'desc').get();
     
     let cvs: CV[] = snapshot.docs.map(doc => {
-  const data = doc.data() as Omit<CV, 'id'>;
-  return {
-    id: doc.id,
-    ...data,
-  };
-});
+      const data = doc.data() as Omit<CV, 'id'>;
+      return {
+        id: doc.id,
+        ...data,
+      };
+    });
 
     // Filtrar por área
     if (area && area !== 'Todos') {

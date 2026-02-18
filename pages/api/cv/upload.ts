@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import { getStorage, getFirestore, bucketName } from '@/lib/firebase';
+import { getStorage, getFirestore, bucketName } from '@/lib/firebase-admin';
 import formidable from 'formidable';
 import fs from 'fs';
 
