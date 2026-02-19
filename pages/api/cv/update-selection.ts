@@ -23,18 +23,41 @@ export default async function handler(
   try {
     const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin } = req.body;
 
+    console.log('📝 Actualizando selección de CV:', cvId);
+
     if (!cvId || !puestoSeleccionado || !estadoSeleccion) {
+      console.error('❌ Faltan datos requeridos');
+      console.error('cvId:', cvId);
+      console.error('puestoSeleccionado:', puestoSeleccionado);
+      console.error('estadoSeleccion:', estadoSeleccion);
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
     const db = getFirestore();
 
-    await db.collection('cvs').doc(cvId).update({
+    // Verificar que el CV existe
+    const cvDoc = await db.collection('cvs').doc(cvId).get();
+    
+    if (!cvDoc.exists) {
+      console.error('❌ CV no encontrado:', cvId);
+      return res.status(404).json({ error: 'CV no encontrado' });
+    }
+
+    console.log('📄 CV encontrado, actualizando...');
+    console.log('📌 Puesto:', puestoSeleccionado);
+    console.log('📊 Estado:', estadoSeleccion);
+    console.log('📝 Notas:', notasAdmin || '(sin notas)');
+
+    const updateData = {
       puestoSeleccionado,
       estadoSeleccion,
       notasAdmin: notasAdmin || '',
       fechaSeleccion: new Date().toISOString(),
-    });
+    };
+
+    await db.collection('cvs').doc(cvId).update(updateData);
+
+    console.log('✅ Selección actualizada exitosamente');
 
     return res.status(200).json({ 
       success: true,
@@ -42,10 +65,12 @@ export default async function handler(
     });
 
   } catch (error: any) {
-    console.error('Error al actualizar selección:', error);
+    console.error('❌ Error al actualizar selección:', error);
+    console.error('❌ Stack trace:', error.stack);
     return res.status(500).json({ 
       error: 'Error al actualizar la selección',
-      details: error.message 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
