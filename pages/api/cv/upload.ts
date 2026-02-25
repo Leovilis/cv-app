@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { getStorage, getFirestore, bucketName } from '@/lib/firebase-admin';
+import type { DocumentReference } from 'firebase-admin/firestore';
 import formidable from 'formidable';
 import fs from 'fs';
 
@@ -78,32 +79,44 @@ export default async function handler(
     const existingCVQuery = await db.collection('cvs').where('dni', '==', dni).get();
     
     let replacedCV = false;
-    
+    let existingDocId: string | null = null;
+    let preservedSelectionData: Record<string, any> = {};
+
     if (!existingCVQuery.empty) {
-      console.log('⚠️ Encontrado CV previo, reemplazando...');
+      console.log('⚠️ Encontrado CV previo con mismo DNI, actualizando sin perder estado de selección...');
       const oldCV = existingCVQuery.docs[0];
       const oldCVData = oldCV.data();
-      
-      // Intentar eliminar archivo anterior
+      existingDocId = oldCV.id;
+
+      // Preservar campos de selección si existen
+      if (oldCVData.puestoSeleccionado) {
+        preservedSelectionData = {
+          puestoSeleccionado: oldCVData.puestoSeleccionado,
+          estadoSeleccion:    oldCVData.estadoSeleccion    || '',
+          notasAdmin:         oldCVData.notasAdmin         || '',
+          fechaSeleccion:     oldCVData.fechaSeleccion     || '',
+        };
+        console.log('🔒 Estado de selección preservado:', preservedSelectionData.estadoSeleccion);
+      }
+
+      // Eliminar el PDF anterior de Storage
       if (oldCVData.cvStoragePath) {
         try {
           await storage.bucket(bucketName).file(oldCVData.cvStoragePath).delete();
-          console.log('✅ Archivo anterior eliminado');
+          console.log('✅ Archivo PDF anterior eliminado de Storage');
         } catch (error) {
           console.warn('⚠️ No se pudo eliminar el archivo anterior:', error);
         }
       }
-      
-      await db.collection('cvs').doc(oldCV.id).delete();
-      console.log('✅ Documento anterior eliminado');
+
       replacedCV = true;
     }
 
-    // Subir archivo a Storage
+    // Subir nuevo archivo a Storage
     const timestamp = Date.now();
     const safeFileName = cvFile.originalFilename?.replace(/[^a-zA-Z0-9.-]/g, '_') || 'cv.pdf';
     const fileName = `cvs/${timestamp}_${dni}_${safeFileName}`;
-    
+
     console.log('📤 Subiendo archivo a Storage:', fileName);
 
     await storage.bucket(bucketName).upload(cvFile.filepath, {
@@ -131,7 +144,7 @@ export default async function handler(
 
     console.log('✅ URL firmada generada');
 
-    // Guardar en Firestore
+    // Datos base del CV (sin campos de selección)
     const cvData = {
       nombre,
       apellido,
@@ -146,11 +159,24 @@ export default async function handler(
       cvUrl: url,
       uploadedBy: session.user.email,
       uploadedAt: new Date().toISOString(),
+      // Restaurar estado de selección si existía
+      ...preservedSelectionData,
     };
 
-    console.log('💾 Guardando en Firestore...');
-    const docRef = await db.collection('cvs').add(cvData);
-    console.log('✅ Guardado en Firestore con ID:', docRef.id);
+    let docRef: DocumentReference;
+
+    if (existingDocId) {
+      // Actualizar el documento existente — preserva el mismo ID en Firestore
+      console.log('💾 Actualizando documento existente en Firestore:', existingDocId);
+      await db.collection('cvs').doc(existingDocId).update(cvData);
+      docRef = db.collection('cvs').doc(existingDocId);
+      console.log('✅ Documento actualizado en Firestore');
+    } else {
+      // Documento nuevo
+      console.log('💾 Creando nuevo documento en Firestore...');
+      docRef = await db.collection('cvs').add(cvData);
+      console.log('✅ Guardado en Firestore con ID:', docRef.id);
+    }
 
     // Limpiar archivo temporal
     try {
