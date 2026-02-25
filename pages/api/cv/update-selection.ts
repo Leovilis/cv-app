@@ -23,30 +23,41 @@ export default async function handler(
   try {
     const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin } = req.body;
 
-    console.log('📝 Actualizando selección de CV:', cvId);
+    if (!cvId) {
+      return res.status(400).json({ error: 'Falta el ID del CV' });
+    }
 
-    if (!cvId || !puestoSeleccionado || !estadoSeleccion) {
-      console.error('❌ Faltan datos requeridos');
-      console.error('cvId:', cvId);
-      console.error('puestoSeleccionado:', puestoSeleccionado);
-      console.error('estadoSeleccion:', estadoSeleccion);
+    // Si puestoSeleccionado y estadoSeleccion son strings vacíos, se está
+    // quitando el CV del proceso de selección (lo devuelve a la lista general).
+    const isClearing = puestoSeleccionado === '' && estadoSeleccion === '';
+
+    if (!isClearing && (!puestoSeleccionado || !estadoSeleccion)) {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
     const db = getFirestore();
 
-    // Verificar que el CV existe
     const cvDoc = await db.collection('cvs').doc(cvId).get();
-    
     if (!cvDoc.exists) {
-      console.error('❌ CV no encontrado:', cvId);
       return res.status(404).json({ error: 'CV no encontrado' });
     }
 
-    console.log('📄 CV encontrado, actualizando...');
-    console.log('📌 Puesto:', puestoSeleccionado);
-    console.log('📊 Estado:', estadoSeleccion);
-    console.log('📝 Notas:', notasAdmin || '(sin notas)');
+    if (isClearing) {
+      // Borrar campos de selección usando FieldValue.delete() vía update con
+      // valores vacíos — Firestore permite sobreescribir con '' para limpiarlos.
+      await db.collection('cvs').doc(cvId).update({
+        puestoSeleccionado: '',
+        estadoSeleccion: '',
+        notasAdmin: '',
+        fechaSeleccion: '',
+      });
+
+      console.log('✅ CV removido del proceso de selección:', cvId);
+      return res.status(200).json({
+        success: true,
+        message: 'CV removido del proceso de selección',
+      });
+    }
 
     const updateData = {
       puestoSeleccionado,
@@ -58,19 +69,17 @@ export default async function handler(
     await db.collection('cvs').doc(cvId).update(updateData);
 
     console.log('✅ Selección actualizada exitosamente');
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       message: 'Selección actualizada exitosamente',
     });
 
   } catch (error: any) {
     console.error('❌ Error al actualizar selección:', error);
-    console.error('❌ Stack trace:', error.stack);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Error al actualizar la selección',
       details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 }
