@@ -7,9 +7,7 @@ import formidable from 'formidable';
 import fs from 'fs';
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 export default async function handler(
@@ -30,121 +28,116 @@ export default async function handler(
   try {
     const form = formidable({
       maxFileSize: 10 * 1024 * 1024,
-      filter: function ({ mimetype }) {
-        return mimetype === 'application/pdf';
-      },
+      filter: ({ mimetype }) => mimetype === 'application/pdf',
     });
 
-    console.log('📋 Parseando formulario...');
     const [fields, files] = await form.parse(req);
 
-    const nombre = Array.isArray(fields.nombre) ? fields.nombre[0] : fields.nombre;
-    const apellido = Array.isArray(fields.apellido) ? fields.apellido[0] : fields.apellido;
-    const dni = Array.isArray(fields.dni) ? fields.dni[0] : fields.dni;
-    const telefonoArea = Array.isArray(fields.telefonoArea) ? fields.telefonoArea[0] : fields.telefonoArea;
+    const nombre         = Array.isArray(fields.nombre)         ? fields.nombre[0]         : fields.nombre;
+    const apellido       = Array.isArray(fields.apellido)       ? fields.apellido[0]       : fields.apellido;
+    const dni            = Array.isArray(fields.dni)            ? fields.dni[0]            : fields.dni;
+    const telefonoArea   = Array.isArray(fields.telefonoArea)   ? fields.telefonoArea[0]   : fields.telefonoArea;
     const telefonoNumero = Array.isArray(fields.telefonoNumero) ? fields.telefonoNumero[0] : fields.telefonoNumero;
-    const fechaNacimiento = Array.isArray(fields.fechaNacimiento) 
-      ? fields.fechaNacimiento[0] 
-      : fields.fechaNacimiento;
+    const fechaNacimiento= Array.isArray(fields.fechaNacimiento)? fields.fechaNacimiento[0]: fields.fechaNacimiento;
     const nivelFormacion = Array.isArray(fields.nivelFormacion) ? fields.nivelFormacion[0] : fields.nivelFormacion;
-    const area = Array.isArray(fields.area) ? fields.area[0] : fields.area || 'Genérico';
-    const cvFile = Array.isArray(files.cv) ? files.cv[0] : files.cv;
-
-    console.log('👤 Datos recibidos:', { nombre, apellido, dni, area, nivelFormacion });
+    const area           = (Array.isArray(fields.area) ? fields.area[0] : fields.area) || 'Genérico';
+    const cvFile         = Array.isArray(files.cv) ? files.cv[0] : files.cv;
 
     // Validaciones
-    if (!nombre || !apellido || !dni || !telefonoArea || !telefonoNumero || !fechaNacimiento || !nivelFormacion || !cvFile) {
-      console.error('❌ Faltan campos requeridos');
+    if (!nombre||!apellido||!dni||!telefonoArea||!telefonoNumero||!fechaNacimiento||!nivelFormacion||!cvFile) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
-
     if (!/^\d{7,8}$/.test(dni)) {
-      console.error('❌ DNI inválido:', dni);
       return res.status(400).json({ error: 'DNI inválido' });
     }
-
-    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-    if (!dateRegex.test(fechaNacimiento)) {
-      console.error('❌ Formato de fecha inválido:', fechaNacimiento);
+    if (!/^(\d{2})\/(\d{2})\/(\d{4})$/.test(fechaNacimiento)) {
       return res.status(400).json({ error: 'Formato de fecha inválido' });
     }
 
-    console.log('✅ Validaciones pasadas');
-
     const storage = getStorage();
-    const db = getFirestore();
+    const db      = getFirestore();
 
-    // Verificar si existe CV previo con mismo DNI
+    // Buscar CV existente con el mismo DNI
     console.log('🔍 Buscando CVs existentes con DNI:', dni);
-    const existingCVQuery = await db.collection('cvs').where('dni', '==', dni).get();
-    
-    let replacedCV = false;
+    const existingQuery = await db.collection('cvs').where('dni', '==', dni).get();
+
+    let replacedCV    = false;
     let existingDocId: string | null = null;
-    let preservedSelectionData: Record<string, any> = {};
+    let preservedData: Record<string, any> = {};
 
-    if (!existingCVQuery.empty) {
-      console.log('⚠️ Encontrado CV previo con mismo DNI, actualizando sin perder estado de selección...');
-      const oldCV = existingCVQuery.docs[0];
-      const oldCVData = oldCV.data();
-      existingDocId = oldCV.id;
+    if (!existingQuery.empty) {
+      const oldCV     = existingQuery.docs[0];
+      const oldData   = oldCV.data();
+      existingDocId   = oldCV.id;
+      const wasDiscarded = oldData.estadoSeleccion === 'Descartado';
 
-      // Preservar campos de selección si existen
-      if (oldCVData.puestoSeleccionado) {
-        preservedSelectionData = {
-          puestoSeleccionado: oldCVData.puestoSeleccionado,
-          estadoSeleccion:    oldCVData.estadoSeleccion    || '',
-          notasAdmin:         oldCVData.notasAdmin         || '',
-          fechaSeleccion:     oldCVData.fechaSeleccion     || '',
+      console.log(wasDiscarded
+        ? `⚠️ DNI ${dni} pertenece a un candidato DESCARTADO (${oldData.motivoDescarte}). Se acepta la carga pero se marcará la alerta.`
+        : `⚠️ DNI ${dni} ya existe. Actualizando PDF sin perder estado de selección.`
+      );
+
+      if (wasDiscarded) {
+        // Candidato fue descartado antes: acepta la carga pero pone bandera de alerta
+        // NO preservar estadoSeleccion ni motivoDescarte en el nuevo estado activo.
+        // El CV se incorpora como nuevo a "Todos los CVs" pero con la alerta visible.
+        preservedData = {
+          repostulacionDescartado: true,
+          motivoDescarteAnterior:  oldData.motivoDescarte || 'Sin motivo registrado',
+          // Limpiar estado de selección para que aparezca en "Todos los CVs"
+          puestoSeleccionado: '',
+          estadoSeleccion:    '',
+          notasAdmin:         '',
+          fechaSeleccion:     '',
+          motivoDescarte:     '',
         };
-        console.log('🔒 Estado de selección preservado:', preservedSelectionData.estadoSeleccion);
+      } else {
+        // CV normal: preservar estado de selección activo
+        if (oldData.puestoSeleccionado) {
+          preservedData = {
+            puestoSeleccionado:      oldData.puestoSeleccionado,
+            estadoSeleccion:         oldData.estadoSeleccion    || '',
+            notasAdmin:              oldData.notasAdmin         || '',
+            fechaSeleccion:          oldData.fechaSeleccion     || '',
+            motivoDescarte:          '',
+            repostulacionDescartado: false,
+            motivoDescarteAnterior:  '',
+          };
+          console.log('🔒 Estado de selección preservado:', oldData.estadoSeleccion);
+        }
       }
 
-      // Eliminar el PDF anterior de Storage
-      if (oldCVData.cvStoragePath) {
+      // Eliminar PDF anterior de Storage
+      if (oldData.cvStoragePath) {
         try {
-          await storage.bucket(bucketName).file(oldCVData.cvStoragePath).delete();
-          console.log('✅ Archivo PDF anterior eliminado de Storage');
-        } catch (error) {
-          console.warn('⚠️ No se pudo eliminar el archivo anterior:', error);
+          await storage.bucket(bucketName).file(oldData.cvStoragePath).delete();
+          console.log('✅ PDF anterior eliminado de Storage');
+        } catch (err) {
+          console.warn('⚠️ No se pudo eliminar el PDF anterior:', err);
         }
       }
 
       replacedCV = true;
     }
 
-    // Subir nuevo archivo a Storage
-    const timestamp = Date.now();
-    const safeFileName = cvFile.originalFilename?.replace(/[^a-zA-Z0-9.-]/g, '_') || 'cv.pdf';
-    const fileName = `cvs/${timestamp}_${dni}_${safeFileName}`;
+    // Subir nuevo PDF
+    const timestamp   = Date.now();
+    const safeFile    = cvFile.originalFilename?.replace(/[^a-zA-Z0-9.-]/g,'_') || 'cv.pdf';
+    const fileName    = `cvs/${timestamp}_${dni}_${safeFile}`;
 
-    console.log('📤 Subiendo archivo a Storage:', fileName);
-
+    console.log('📤 Subiendo PDF a Storage:', fileName);
     await storage.bucket(bucketName).upload(cvFile.filepath, {
       destination: fileName,
       metadata: {
         contentType: 'application/pdf',
-        metadata: {
-          uploadedBy: session.user.email!,
-          nombre,
-          apellido,
-          dni,
-        },
+        metadata: { uploadedBy: session.user.email!, nombre, apellido, dni },
       },
     });
 
-    console.log('✅ Archivo subido a Storage');
-
-    // Generar URL firmada
-    console.log('🔗 Generando URL firmada...');
+    // URL firmada 10 años
     const file = storage.bucket(bucketName).file(fileName);
-    const [url] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
-    });
+    const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 1000*60*60*24*365*10 });
 
-    console.log('✅ URL firmada generada');
-
-    // Datos base del CV (sin campos de selección)
+    // Datos del documento
     const cvData = {
       nombre,
       apellido,
@@ -154,56 +147,52 @@ export default async function handler(
       fechaNacimiento,
       nivelFormacion,
       area,
-      cvFileName: cvFile.originalFilename || 'cv.pdf',
+      cvFileName:    cvFile.originalFilename || 'cv.pdf',
       cvStoragePath: fileName,
-      cvUrl: url,
-      uploadedBy: session.user.email,
-      uploadedAt: new Date().toISOString(),
-      // Restaurar estado de selección si existía
-      ...preservedSelectionData,
+      cvUrl:         url,
+      uploadedBy:    session.user.email,
+      uploadedAt:    new Date().toISOString(),
+      ...preservedData,
     };
 
     let docRef: DocumentReference;
 
     if (existingDocId) {
-      // Actualizar el documento existente — preserva el mismo ID en Firestore
-      console.log('💾 Actualizando documento existente en Firestore:', existingDocId);
+      console.log('💾 Actualizando documento existente:', existingDocId);
       await db.collection('cvs').doc(existingDocId).update(cvData);
       docRef = db.collection('cvs').doc(existingDocId);
-      console.log('✅ Documento actualizado en Firestore');
     } else {
-      // Documento nuevo
-      console.log('💾 Creando nuevo documento en Firestore...');
+      console.log('💾 Creando nuevo documento...');
       docRef = await db.collection('cvs').add(cvData);
-      console.log('✅ Guardado en Firestore con ID:', docRef.id);
+      console.log('✅ Creado con ID:', docRef.id);
     }
 
-    // Limpiar archivo temporal
-    try {
-      fs.unlinkSync(cvFile.filepath);
-      console.log('✅ Archivo temporal eliminado');
-    } catch (e) {
-      console.warn('⚠️ No se pudo eliminar archivo temporal:', e);
-    }
+    // Limpiar temp
+    try { fs.unlinkSync(cvFile.filepath); } catch {}
 
-    console.log('🎉 Upload completado exitosamente');
+    const wasDiscardedRepost = preservedData.repostulacionDescartado === true;
+
+    console.log('🎉 Upload completado. Repostulación de descartado:', wasDiscardedRepost);
 
     return res.status(200).json({
-      success: true,
-      id: docRef.id,
-      replaced: replacedCV,
-      message: replacedCV 
-        ? 'CV actualizado exitosamente. Se reemplazó el CV anterior.' 
-        : 'CV subido exitosamente',
+      success:               true,
+      id:                    docRef.id,
+      replaced:              replacedCV,
+      repostulacionDescartado: wasDiscardedRepost,
+      motivoDescarteAnterior:  wasDiscardedRepost ? preservedData.motivoDescarteAnterior : null,
+      message: wasDiscardedRepost
+        ? 'CV cargado. ATENCIÓN: este candidato fue descartado anteriormente.'
+        : replacedCV
+          ? 'CV actualizado exitosamente.'
+          : 'CV subido exitosamente.',
     });
 
   } catch (error: any) {
     console.error('❌ Error al subir CV:', error);
-    console.error('❌ Stack trace:', error.stack);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Error al procesar el CV',
       details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 }

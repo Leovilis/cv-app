@@ -105,8 +105,11 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         throw new Error(data.error || 'Error al subir el CV');
       }
 
-      if (data.replaced) {
-        alert(`CV actualizado exitosamente. Se reemplazó el CV anterior.`);
+      if (data.repostulacionDescartado) {
+        // La alerta al admin se muestra en el panel con banda naranja — no interrumpir al postulante
+        console.warn('⚠️ Repostulación de candidato previamente descartado. Motivo anterior:', data.motivoDescarteAnterior);
+      } else if (data.replaced) {
+        alert('CV actualizado exitosamente. Se reemplazó el CV anterior.');
       }
 
       setFormData({

@@ -13,11 +13,17 @@ export interface CV {
   cvUrl?: string;
   uploadedBy: string;
   uploadedAt: string;
-  // Campos de selección (agregados por admin)
+
+  // Campos de selección (gestionados por admin)
   puestoSeleccionado?: string;
   estadoSeleccion?: string;
   fechaSeleccion?: string;
   notasAdmin?: string;
+  motivoDescarte?: string;
+
+  // Campos de repostulación (candidato descartado que vuelve a postularse)
+  repostulacionDescartado?: boolean;
+  motivoDescarteAnterior?: string;
 }
 
 export interface CVFormData {
@@ -33,7 +39,16 @@ export interface CVFormData {
 }
 
 export type NivelFormacion = 'Secundario' | 'Terciario' | 'Universitario' | 'Formación Superior';
-export type EstadoSeleccion = 'En Curso' | 'Entrevista' | 'Aprobado' | 'Rechazado' | 'Contratado';
+
+export type EstadoSeleccion =
+  | 'En Curso'
+  | 'Entrevista'
+  | 'Preseleccionado'
+  | 'Seleccionado'
+  | 'Descartado'
+  | 'Aprobado'
+  | 'Rechazado'
+  | 'Contratado';
 
 export interface APIResponse<T = any> {
   success?: boolean;

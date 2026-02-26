@@ -21,14 +21,13 @@ export default async function handler(
   }
 
   try {
-    const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin } = req.body;
+    const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin, motivoDescarte } = req.body;
 
     if (!cvId) {
       return res.status(400).json({ error: 'Falta el ID del CV' });
     }
 
-    // Si puestoSeleccionado y estadoSeleccion son strings vacíos, se está
-    // quitando el CV del proceso de selección (lo devuelve a la lista general).
+    // Quitar del proceso (vaciar todo)
     const isClearing = puestoSeleccionado === '' && estadoSeleccion === '';
 
     if (!isClearing && (!puestoSeleccionado || !estadoSeleccion)) {
@@ -36,43 +35,45 @@ export default async function handler(
     }
 
     const db = getFirestore();
-
     const cvDoc = await db.collection('cvs').doc(cvId).get();
+
     if (!cvDoc.exists) {
       return res.status(404).json({ error: 'CV no encontrado' });
     }
 
     if (isClearing) {
-      // Borrar campos de selección usando FieldValue.delete() vía update con
-      // valores vacíos — Firestore permite sobreescribir con '' para limpiarlos.
       await db.collection('cvs').doc(cvId).update({
         puestoSeleccionado: '',
-        estadoSeleccion: '',
-        notasAdmin: '',
-        fechaSeleccion: '',
+        estadoSeleccion:    '',
+        notasAdmin:         '',
+        fechaSeleccion:     '',
+        motivoDescarte:     '',
       });
-
-      console.log('✅ CV removido del proceso de selección:', cvId);
-      return res.status(200).json({
-        success: true,
-        message: 'CV removido del proceso de selección',
-      });
+      console.log('✅ CV removido del proceso:', cvId);
+      return res.status(200).json({ success: true, message: 'CV removido del proceso de selección' });
     }
 
-    const updateData = {
+    // Construcción del objeto de actualización
+    const updateData: Record<string, any> = {
       puestoSeleccionado,
       estadoSeleccion,
       notasAdmin: notasAdmin || '',
       fechaSeleccion: new Date().toISOString(),
     };
 
+    // Si se está descartando, guardar el motivo en el documento
+    if (estadoSeleccion === 'Descartado') {
+      updateData.motivoDescarte = motivoDescarte || '';
+      console.log('🚫 Candidato descartado. Motivo:', motivoDescarte);
+    } else {
+      // Limpiar motivo si se reactiva (caso borde)
+      updateData.motivoDescarte = '';
+    }
+
     await db.collection('cvs').doc(cvId).update(updateData);
 
-    console.log('✅ Selección actualizada exitosamente');
-    return res.status(200).json({
-      success: true,
-      message: 'Selección actualizada exitosamente',
-    });
+    console.log('✅ Selección actualizada:', cvId, '→', estadoSeleccion);
+    return res.status(200).json({ success: true, message: 'Selección actualizada exitosamente' });
 
   } catch (error: any) {
     console.error('❌ Error al actualizar selección:', error);
