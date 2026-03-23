@@ -1,12 +1,11 @@
+// pages/api/cv/update-selection.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { getFirestore } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -15,34 +14,63 @@ export default async function handler(
   if (!session || !session.user) {
     return res.status(401).json({ error: 'No autorizado' });
   }
-
   if (session.user.email !== 'sistemas@ddonpedrosrl.com') {
     return res.status(403).json({ error: 'Acceso denegado' });
   }
 
   try {
-    const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin, motivoDescarte } = req.body;
+    const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin, motivoDescarte, accion } = req.body;
 
-    if (!cvId) {
-      return res.status(400).json({ error: 'Falta el ID del CV' });
+    if (!cvId) return res.status(400).json({ error: 'Falta el ID del CV' });
+
+    const db    = getFirestore();
+    const cvRef = db.collection('cvs').doc(cvId);
+    const cvDoc = await cvRef.get();
+
+    if (!cvDoc.exists) return res.status(404).json({ error: 'CV no encontrado' });
+
+    const currentData = cvDoc.data()!;
+
+    // ── REACTIVAR candidato descartado ────────────────────────────────────────
+    if (accion === 'reactivar') {
+      const motivoAnterior = currentData.motivoDescarte || 'Sin motivo registrado';
+      const estadoAnterior = currentData.estadoSeleccion || 'Descartado';
+
+      // Agregar al historial antes de limpiar
+      const entradaHistorial = {
+        estado:  estadoAnterior,
+        fecha:   new Date().toISOString(),
+        motivo:  motivoAnterior,
+        notas:   currentData.notasAdmin || '',
+      };
+
+      await cvRef.update({
+        // Limpiar estado actual — vuelve a "Todos los CVs"
+        puestoSeleccionado: '',
+        estadoSeleccion:    '',
+        notasAdmin:         '',
+        fechaSeleccion:     '',
+        motivoDescarte:     '',
+        // Mantener banda de advertencia visible con el motivo anterior
+        repostulacionDescartado: true,
+        motivoDescarteAnterior:  motivoAnterior,
+        // Acumular en historial
+        historialEstados: FieldValue.arrayUnion(entradaHistorial),
+      });
+
+      console.log('✅ Candidato reactivado desde Descartados:', cvId, '| Motivo anterior:', motivoAnterior);
+      return res.status(200).json({ success: true, message: 'Candidato reactivado exitosamente' });
     }
 
-    // Quitar del proceso (vaciar todo)
+    // ── QUITAR del proceso (limpiar todo) ─────────────────────────────────────
     const isClearing = puestoSeleccionado === '' && estadoSeleccion === '';
 
     if (!isClearing && (!puestoSeleccionado || !estadoSeleccion)) {
       return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
 
-    const db = getFirestore();
-    const cvDoc = await db.collection('cvs').doc(cvId).get();
-
-    if (!cvDoc.exists) {
-      return res.status(404).json({ error: 'CV no encontrado' });
-    }
-
     if (isClearing) {
-      await db.collection('cvs').doc(cvId).update({
+      await cvRef.update({
         puestoSeleccionado: '',
         estadoSeleccion:    '',
         notasAdmin:         '',
@@ -53,24 +81,29 @@ export default async function handler(
       return res.status(200).json({ success: true, message: 'CV removido del proceso de selección' });
     }
 
-    // Construcción del objeto de actualización
+    // ── ACTUALIZAR estado ─────────────────────────────────────────────────────
     const updateData: Record<string, any> = {
       puestoSeleccionado,
       estadoSeleccion,
-      notasAdmin: notasAdmin || '',
+      notasAdmin:    notasAdmin || '',
       fechaSeleccion: new Date().toISOString(),
     };
 
-    // Si se está descartando, guardar el motivo en el documento
     if (estadoSeleccion === 'Descartado') {
       updateData.motivoDescarte = motivoDescarte || '';
-      console.log('🚫 Candidato descartado. Motivo:', motivoDescarte);
+      // Guardar entrada en historial
+      updateData.historialEstados = FieldValue.arrayUnion({
+        estado: 'Descartado',
+        fecha:  new Date().toISOString(),
+        motivo: motivoDescarte || '',
+        notas:  notasAdmin || '',
+      });
+      console.log('🚫 Candidato descartado:', cvId, '| Motivo:', motivoDescarte);
     } else {
-      // Limpiar motivo si se reactiva (caso borde)
       updateData.motivoDescarte = '';
     }
 
-    await db.collection('cvs').doc(cvId).update(updateData);
+    await cvRef.update(updateData);
 
     console.log('✅ Selección actualizada:', cvId, '→', estadoSeleccion);
     return res.status(200).json({ success: true, message: 'Selección actualizada exitosamente' });

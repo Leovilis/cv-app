@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Download, Trash2, RefreshCw, UserCheck, X, Check,
   Calendar, Video, ArrowLeftCircle, Clock, ChevronLeft, ChevronRight,
-  AlertTriangle, Star, Trophy, ThumbsDown
+  AlertTriangle, Star, Trophy, ThumbsDown, RotateCcw, History
 } from 'lucide-react';
 import { CV } from '@/lib/types';
 
@@ -49,8 +49,8 @@ type TabType = 'todos' | 'seleccionados' | 'entrevistar' | 'preseleccionados' | 
 interface MeetingData { date: string; time: string; platform: 'meet'|'zoom'|'teams'; notes: string; }
 
 const PLATFORM_CONFIG = {
-  meet:  { label: 'Google Meet', color: 'bg-green-600 hover:bg-green-700',   urlBase: 'https://meet.google.com/new',              icon: '🎥' },
-  zoom:  { label: 'Zoom',        color: 'bg-blue-600 hover:bg-blue-700',     urlBase: 'https://zoom.us/start/videomeeting',        icon: '📹' },
+  meet:  { label: 'Google Meet', color: 'bg-green-600 hover:bg-green-700',   urlBase: 'https://meet.google.com/new', icon: '🎥' },
+  zoom:  { label: 'Zoom',        color: 'bg-blue-600 hover:bg-blue-700',     urlBase: 'https://zoom.us/start/videomeeting', icon: '📹' },
   teams: { label: 'Teams',       color: 'bg-purple-600 hover:bg-purple-700', urlBase: 'https://teams.microsoft.com/l/meeting/new', icon: '💼' },
 };
 
@@ -58,35 +58,28 @@ const InterviewScheduler: React.FC<{ cv: CV; onClose: () => void }> = ({ cv, onC
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [meeting, setMeeting]     = useState<MeetingData>({ date: '', time: '10:00', platform: 'meet', notes: '' });
+  const [meeting, setMeeting]     = useState<MeetingData>({ date:'', time:'10:00', platform:'meet', notes:'' });
   const [scheduled, setScheduled] = useState(false);
 
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const monthNames  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const dayNames    = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-  const prevMonth = () => { if (viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1); };
-  const nextMonth = () => { if (viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1); };
+  const prevMonth = () => { if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1); };
+  const nextMonth = () => { if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1); };
   const selectDate = (day:number) => setMeeting(m=>({...m,date:`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`}));
   const isToday    = (day:number) => today.getFullYear()===viewYear&&today.getMonth()===viewMonth&&today.getDate()===day;
   const isPast     = (day:number) => { const d=new Date(viewYear,viewMonth,day);d.setHours(0,0,0,0);const t=new Date();t.setHours(0,0,0,0);return d<t; };
-
-  const selectedDateStr = meeting.date
-    ? new Date(meeting.date+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-    : null;
-
-  const buildUrl = () => {
-    if (meeting.platform!=='teams') return PLATFORM_CONFIG[meeting.platform].urlBase;
-    return `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(`Entrevista ${cv.nombre} ${cv.apellido} - ${cv.puestoSeleccionado}`)}`;
-  };
+  const selectedDateStr = meeting.date ? new Date(meeting.date+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : null;
+  const buildUrl = () => meeting.platform!=='teams'
+    ? PLATFORM_CONFIG[meeting.platform].urlBase
+    : `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(`Entrevista ${cv.nombre} ${cv.apellido} - ${cv.puestoSeleccionado}`)}`;
 
   return (
     <div className="p-5 border-t border-purple-200 bg-purple-50">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-semibold text-purple-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4"/>Agendar Entrevista — {cv.nombre} {cv.apellido}
-        </h4>
+        <h4 className="font-semibold text-purple-900 flex items-center gap-2"><Calendar className="w-4 h-4"/>Agendar Entrevista — {cv.nombre} {cv.apellido}</h4>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4"/></button>
       </div>
       {scheduled ? (
@@ -104,24 +97,19 @@ const InterviewScheduler: React.FC<{ cv: CV; onClose: () => void }> = ({ cv, onC
               <span className="font-semibold text-purple-900 text-sm">{monthNames[viewMonth]} {viewYear}</span>
               <button onClick={nextMonth} className="p-1 rounded hover:bg-purple-200"><ChevronRight className="w-4 h-4 text-purple-700"/></button>
             </div>
-            <div className="grid grid-cols-7 gap-0.5 mb-1">
-              {dayNames.map(d=><div key={d} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>)}
-            </div>
+            <div className="grid grid-cols-7 gap-0.5 mb-1">{dayNames.map(d=><div key={d} className="text-center text-xs text-gray-400 font-medium py-1">{d}</div>)}</div>
             <div className="grid grid-cols-7 gap-0.5">
               {Array.from({length:firstDay}).map((_,i)=><div key={`e-${i}`}/>)}
               {Array.from({length:daysInMonth}).map((_,i)=>{
                 const day=i+1;
                 const dateStr=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                const isSelected=meeting.date===dateStr;
-                const past=isPast(day);
+                const isSelected=meeting.date===dateStr; const past=isPast(day);
                 return (
                   <button key={day} disabled={past} onClick={()=>selectDate(day)}
                     className={`text-xs py-1.5 rounded transition-colors
                       ${past?'text-gray-300 cursor-not-allowed':'hover:bg-purple-200 cursor-pointer'}
                       ${isToday(day)&&!isSelected?'ring-1 ring-purple-400 font-bold':''}
-                      ${isSelected?'bg-purple-600 text-white font-bold':'text-gray-700'}`}>
-                    {day}
-                  </button>
+                      ${isSelected?'bg-purple-600 text-white font-bold':'text-gray-700'}`}>{day}</button>
                 );
               })}
             </div>
@@ -164,14 +152,9 @@ const InterviewScheduler: React.FC<{ cv: CV; onClose: () => void }> = ({ cv, onC
 };
 
 // ─── Discard Modal ──────────────────────────────────────────────────────────────
-const DiscardModal: React.FC<{
-  cv: CV;
-  onConfirm: (motivo: string, notas: string) => void;
-  onCancel: () => void;
-}> = ({ cv, onConfirm, onCancel }) => {
+const DiscardModal: React.FC<{ cv: CV; onConfirm:(motivo:string,notas:string)=>void; onCancel:()=>void }> = ({ cv, onConfirm, onCancel }) => {
   const [motivo, setMotivo] = useState('');
   const [notas,  setNotas]  = useState('');
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
@@ -184,12 +167,10 @@ const DiscardModal: React.FC<{
             <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido} — DNI {cv.dni}</p>
           </div>
         </div>
-
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
           <AlertTriangle className="w-4 h-4 inline mr-1"/>
-          Este candidato quedará marcado como <strong>No Apto</strong>. Si en el futuro vuelve a cargar un CV con este DNI, el sistema mostrará una alerta al administrador.
+          Este candidato quedará marcado como <strong>No Apto</strong>. Podés reactivarlo desde la pestaña Descartados si cambiás de opinión.
         </div>
-
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
@@ -206,14 +187,12 @@ const DiscardModal: React.FC<{
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"/>
           </div>
         </div>
-
         <div className="flex gap-3 mt-5">
-          <button onClick={()=>{ if(!motivo){alert('Seleccioná un motivo');return;} onConfirm(motivo,notas); }}
+          <button onClick={()=>{if(!motivo){alert('Seleccioná un motivo');return;}onConfirm(motivo,notas);}}
             className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
             <ThumbsDown className="w-4 h-4"/>Confirmar descarte
           </button>
-          <button onClick={onCancel}
-            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition-colors">
+          <button onClick={onCancel} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition-colors">
             Cancelar
           </button>
         </div>
@@ -252,20 +231,20 @@ export const AdminPanel: React.FC = () => {
 
   const handleDownload = async (cv:CV) => {
     try {
-      const response = await fetch(`/api/cv/download?id=${cv.id}`);
-      const data = await response.json();
-      if (response.ok) window.open(data.downloadUrl,'_blank');
-      else alert(data.error||'Error al descargar');
+      const r = await fetch(`/api/cv/download?id=${cv.id}`);
+      const d = await r.json();
+      if (r.ok) window.open(d.downloadUrl,'_blank');
+      else alert(d.error||'Error al descargar');
     } catch { alert('Error al descargar el CV'); }
   };
 
   const handleDelete = async (cv:CV) => {
     if (!confirm(`¿Eliminar el CV de ${cv.nombre} ${cv.apellido} (DNI: ${cv.dni})?`)) return;
     try {
-      const response = await fetch(`/api/cv/delete?id=${cv.id}`,{method:'DELETE'});
-      const data = await response.json();
-      if (response.ok) { alert('CV eliminado'); fetchCVs(); }
-      else alert(data.error||'Error al eliminar');
+      const r = await fetch(`/api/cv/delete?id=${cv.id}`,{method:'DELETE'});
+      const d = await r.json();
+      if (r.ok) { alert('CV eliminado'); fetchCVs(); }
+      else alert(d.error||'Error al eliminar');
     } catch { alert('Error al eliminar el CV'); }
   };
 
@@ -278,46 +257,53 @@ export const AdminPanel: React.FC = () => {
   const handleSaveSelection = async (cvId:string) => {
     if (!selectionData.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
     try {
-      const response = await fetch('/api/cv/update-selection',{
+      const r = await fetch('/api/cv/update-selection',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ cvId, puestoSeleccionado:selectionData.puesto, estadoSeleccion:selectionData.estado, notasAdmin:selectionData.notas }),
       });
-      const data = await response.json();
-      if (response.ok) { setEditingCV(null); fetchCVs(); }
-      else alert(data.error||'Error al guardar');
+      const d = await r.json();
+      if (r.ok) { setEditingCV(null); fetchCVs(); }
+      else alert(d.error||'Error al guardar');
     } catch { alert('Error al guardar la selección'); }
   };
 
   const handleRemoveFromSelection = async (cv:CV) => {
     if (!confirm(`¿Quitar a ${cv.nombre} ${cv.apellido} del proceso? Volverá a la lista general.`)) return;
     try {
-      const response = await fetch('/api/cv/update-selection',{
+      const r = await fetch('/api/cv/update-selection',{
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ cvId:cv.id, puestoSeleccionado:'', estadoSeleccion:'', notasAdmin:'' }),
       });
-      if (response.ok) fetchCVs();
-      else { const data=await response.json(); alert(data.error||'Error'); }
+      if (r.ok) fetchCVs();
+      else { const d=await r.json(); alert(d.error||'Error'); }
     } catch { alert('Error al actualizar'); }
   };
 
   const handleDiscard = async (cv:CV, motivo:string, notas:string) => {
     try {
-      const response = await fetch('/api/cv/update-selection',{
+      const r = await fetch('/api/cv/update-selection',{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          cvId:cv.id,
-          puestoSeleccionado: cv.puestoSeleccionado||'',
-          estadoSeleccion: 'Descartado',
-          notasAdmin: notas||'',
-          motivoDescarte: motivo,
-        }),
+        body:JSON.stringify({ cvId:cv.id, puestoSeleccionado:cv.puestoSeleccionado||'', estadoSeleccion:'Descartado', notasAdmin:notas||'', motivoDescarte:motivo }),
       });
-      if (response.ok) { setDiscardingCV(null); fetchCVs(); }
-      else { const data=await response.json(); alert(data.error||'Error al descartar'); }
+      if (r.ok) { setDiscardingCV(null); fetchCVs(); }
+      else { const d=await r.json(); alert(d.error||'Error al descartar'); }
     } catch { alert('Error al descartar'); }
   };
 
-  // ─── Datos filtrados por pestaña ─────────────────────────────────────────────
+  // ── Reactivar candidato descartado → vuelve a "Todos los CVs" con banda de advertencia
+  const handleReactivar = async (cv:CV) => {
+    if (!confirm(`¿Reactivar a ${cv.nombre} ${cv.apellido}? Volverá a "Todos los CVs" con una nota del motivo de descarte anterior.`)) return;
+    try {
+      const r = await fetch('/api/cv/update-selection',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ cvId:cv.id, accion:'reactivar' }),
+      });
+      if (r.ok) fetchCVs();
+      else { const d=await r.json(); alert(d.error||'Error al reactivar'); }
+    } catch { alert('Error al reactivar el candidato'); }
+  };
+
+  // ─── Filtros ──────────────────────────────────────────────────────────────────
   const base = (list:CV[]) => list.filter(cv=>{
     if (selectedArea!=='Todos'&&cv.area!==selectedArea) return false;
     if (selectedFormacion!=='Todos'&&cv.nivelFormacion!==selectedFormacion) return false;
@@ -345,17 +331,15 @@ export const AdminPanel: React.FC = () => {
     return acc;
   },{} as Record<string,CV[]>);
 
-  // ─── Config pestañas ─────────────────────────────────────────────────────────
   const TABS:{id:TabType;label:string;count:number;accent:string;active:string}[] = [
-    { id:'todos',            label:'Todos los CVs',         count:allCvs.length,      accent:'border-manzur-primary', active:'text-manzur-primary' },
-    { id:'seleccionados',    label:'En Proceso',            count:inProcess.length,   accent:'border-blue-500',       active:'text-blue-600' },
-    { id:'entrevistar',      label:'A Entrevistar',         count:toInterview.length, accent:'border-purple-500',     active:'text-purple-600' },
-    { id:'preseleccionados', label:'Preseleccionados',      count:preselected.length, accent:'border-amber-500',      active:'text-amber-600' },
-    { id:'ingresaron',       label:'Seleccionados',         count:hired.length,       accent:'border-green-500',      active:'text-green-600' },
-    { id:'descartados',      label:'Descartados / No Aptos',count:discarded.length,   accent:'border-red-500',        active:'text-red-600' },
+    { id:'todos',            label:'Todos los CVs',          count:allCvs.length,      accent:'border-manzur-primary', active:'text-manzur-primary' },
+    { id:'seleccionados',    label:'En Proceso',             count:inProcess.length,   accent:'border-blue-500',       active:'text-blue-600' },
+    { id:'entrevistar',      label:'A Entrevistar',          count:toInterview.length, accent:'border-purple-500',     active:'text-purple-600' },
+    { id:'preseleccionados', label:'Preseleccionados',       count:preselected.length, accent:'border-amber-500',      active:'text-amber-600' },
+    { id:'ingresaron',       label:'Seleccionados',          count:hired.length,       accent:'border-green-500',      active:'text-green-600' },
+    { id:'descartados',      label:'Descartados / No Aptos', count:discarded.length,   accent:'border-red-500',        active:'text-red-600' },
   ];
 
-  // Estados disponibles en el editor según pestaña
   const getAvailableEstados = (tab:TabType) => {
     if (tab==='seleccionados')    return ['En Curso','Entrevista'];
     if (tab==='entrevistar')      return ['Entrevista','Preseleccionado'];
@@ -369,6 +353,7 @@ export const AdminPanel: React.FC = () => {
     const isEditing    = editingCV===cv.id;
     const isScheduling = schedulingCV===cv.id;
     const isDiscarded  = cv.estadoSeleccion==='Descartado';
+    const [showHistory, setShowHistory] = useState(false);
 
     const badgeBg =
       cv.estadoSeleccion==='Descartado'      ? 'bg-red-50 border-red-300' :
@@ -386,7 +371,7 @@ export const AdminPanel: React.FC = () => {
     return (
       <div className={`border rounded-lg hover:shadow-md transition-shadow ${isDiscarded?'border-red-300 bg-red-50/30':'border-manzur-secondary'}`}>
 
-        {/* Banda roja — candidato descartado */}
+        {/* Banda roja — descartado */}
         {isDiscarded && (
           <div className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-t-lg text-sm font-semibold">
             <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
@@ -394,11 +379,11 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Banda naranja — repostulación de descartado (flag del backend) */}
+        {/* Banda naranja — repostulación de descartado */}
         {cv.repostulacionDescartado && !isDiscarded && (
           <div className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-t-lg text-sm font-semibold">
             <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
-            ATENCIÓN: Este candidato fue descartado anteriormente — {cv.motivoDescarteAnterior}
+            ATENCIÓN: Fue descartado anteriormente — {cv.motivoDescarteAnterior}
           </div>
         )}
 
@@ -410,25 +395,54 @@ export const AdminPanel: React.FC = () => {
               <p>Teléfono: ({cv.telefonoArea}) {cv.telefonoNumero}</p>
               <p>Nacimiento: {cv.fechaNacimiento}</p>
               <p>Formación: {cv.nivelFormacion}</p>
+              {cv.lugarResidencia && <p>Residencia: {cv.lugarResidencia}</p>}
               <p>Cargado: {new Date(cv.uploadedAt).toLocaleDateString('es-AR')}</p>
               <p>Por: {cv.uploadedBy}</p>
             </div>
+
+            {/* Búsquedas a las que se postuló */}
+            {cv.busquedasPostuladas && cv.busquedasPostuladas.length > 0 && (
+              <p className="text-xs text-manzur-primary mt-2">
+                📋 Postulado a {cv.busquedasPostuladas.length} búsqueda{cv.busquedasPostuladas.length!==1?'s':''}
+              </p>
+            )}
+
             {cv.puestoSeleccionado && (
               <div className={`mt-3 p-3 rounded-lg border ${badgeBg}`}>
                 <p className={`font-medium ${badgeTxt}`}>Puesto: {cv.puestoSeleccionado}</p>
                 <p className={`text-sm ${badgeTxt}`}>Estado: <span className="font-semibold">{cv.estadoSeleccion}</span></p>
                 {cv.notasAdmin && <p className={`text-sm mt-1 ${badgeTxt}`}>Notas: {cv.notasAdmin}</p>}
                 {cv.fechaSeleccion && (
-                  <p className="text-xs mt-1 text-gray-500">
-                    Actualizado: {new Date(cv.fechaSeleccion).toLocaleDateString('es-AR')}
-                  </p>
+                  <p className="text-xs mt-1 text-gray-500">Actualizado: {new Date(cv.fechaSeleccion).toLocaleDateString('es-AR')}</p>
+                )}
+              </div>
+            )}
+
+            {/* Historial de estados */}
+            {cv.historialEstados && cv.historialEstados.length > 0 && (
+              <div className="mt-2">
+                <button onClick={()=>setShowHistory(v=>!v)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                  <History className="w-3 h-3"/>
+                  {showHistory ? 'Ocultar historial' : `Ver historial (${cv.historialEstados.length} evento${cv.historialEstados.length!==1?'s':''})`}
+                </button>
+                {showHistory && (
+                  <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-gray-200">
+                    {cv.historialEstados.map((h, i) => (
+                      <div key={i} className="text-xs text-gray-500">
+                        <span className="font-medium text-gray-700">{h.estado}</span>
+                        {h.motivo && <span className="text-red-600"> — {h.motivo}</span>}
+                        <span className="ml-1 text-gray-400">{new Date(h.fecha).toLocaleDateString('es-AR')}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2 ml-4 justify-end">
-            {/* Descargar — siempre */}
+            {/* Descargar */}
             <button onClick={()=>handleDownload(cv)} title="Descargar CV"
               className="px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
               <Download className="w-4 h-4"/>
@@ -442,7 +456,7 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Gestionar — no en Seleccionados finales ni Descartados */}
+            {/* Gestionar selección — no en Seleccionados ni Descartados */}
             {activeTab!=='descartados' && activeTab!=='ingresaron' && (
               <button onClick={()=>{setSchedulingCV(null);handleStartSelection(cv.id!);}} title="Gestionar selección"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700 transition-colors">
@@ -458,7 +472,16 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Quitar del proceso — En Proceso y Entrevistar */}
+            {/* ── REACTIVAR — solo en Descartados ── */}
+            {activeTab==='descartados' && (
+              <button onClick={()=>handleReactivar(cv)} title="Reactivar candidato — vuelve a Todos los CVs con nota de descarte anterior"
+                className="px-3 py-2 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-1">
+                <RotateCcw className="w-4 h-4"/>
+                <span className="text-xs font-medium">Reactivar</span>
+              </button>
+            )}
+
+            {/* Quitar del proceso — En Proceso y A Entrevistar */}
             {(activeTab==='seleccionados'||activeTab==='entrevistar') && (
               <button onClick={()=>handleRemoveFromSelection(cv)} title="Quitar del proceso — vuelve a lista general"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
@@ -466,7 +489,7 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Eliminar — siempre */}
+            {/* Eliminar */}
             <button onClick={()=>handleDelete(cv)} title="Eliminar CV"
               className="px-3 py-2 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors">
               <Trash2 className="w-4 h-4"/>
@@ -521,13 +544,8 @@ export const AdminPanel: React.FC = () => {
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-
       {discardingCV && (
-        <DiscardModal
-          cv={discardingCV}
-          onConfirm={(motivo,notas)=>handleDiscard(discardingCV,motivo,notas)}
-          onCancel={()=>setDiscardingCV(null)}
-        />
+        <DiscardModal cv={discardingCV} onConfirm={(m,n)=>handleDiscard(discardingCV,m,n)} onCancel={()=>setDiscardingCV(null)}/>
       )}
 
       {/* Pestañas */}
@@ -535,34 +553,30 @@ export const AdminPanel: React.FC = () => {
         {TABS.map(tab=>(
           <button key={tab.id} onClick={()=>setActiveTab(tab.id)}
             className={`px-4 py-3 font-medium transition-colors text-sm whitespace-nowrap ${
-              activeTab===tab.id ? `border-b-2 ${tab.accent} ${tab.active}` : 'text-gray-500 hover:text-gray-700'
+              activeTab===tab.id?`border-b-2 ${tab.accent} ${tab.active}`:'text-gray-500 hover:text-gray-700'
             }`}>
             {tab.label}
-            <span className={`ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs text-white ${
-              activeTab===tab.id?'bg-gray-700':'bg-gray-400'
-            }`}>{tab.count}</span>
+            <span className={`ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs text-white ${activeTab===tab.id?'bg-gray-700':'bg-gray-400'}`}>
+              {tab.count}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* Banners contextuales */}
+      {/* Banners */}
       {activeTab==='seleccionados' && (
         <p className="text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
           CVs activos en proceso. Cambiá el estado a <strong>Entrevista</strong> para avanzarlos.
-          Usá <ArrowLeftCircle className="w-3.5 h-3.5 inline"/> para devolverlos a la lista general,
-          o <ThumbsDown className="w-3.5 h-3.5 inline"/> para descartarlos.
         </p>
       )}
       {activeTab==='entrevistar' && (
         <p className="text-sm text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
           Candidatos en etapa de entrevista. Usá <Calendar className="w-3.5 h-3.5 inline"/> para agendar por Meet, Zoom o Teams.
-          Avanzalos a <strong>Preseleccionado</strong> o descartálos con <ThumbsDown className="w-3.5 h-3.5 inline"/>.
         </p>
       )}
       {activeTab==='preseleccionados' && (
         <p className="text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-          <Star className="w-3.5 h-3.5 inline mr-1"/>Candidatos que superaron la entrevista.
-          Marcalos como <strong>Seleccionado</strong> cuando ingresen, o descartálos con <ThumbsDown className="w-3.5 h-3.5 inline"/> si declinan a último momento.
+          <Star className="w-3.5 h-3.5 inline mr-1"/>Candidatos que superaron la entrevista. Marcalos como <strong>Seleccionado</strong> cuando ingresen, o descartálos si declinan.
         </p>
       )}
       {activeTab==='ingresaron' && (
@@ -572,7 +586,8 @@ export const AdminPanel: React.FC = () => {
       )}
       {activeTab==='descartados' && (
         <p className="text-sm text-red-700 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-          <AlertTriangle className="w-3.5 h-3.5 inline mr-1"/>Candidatos No Aptos. Si vuelven a postularse, el sistema alertará al administrador automáticamente.
+          <AlertTriangle className="w-3.5 h-3.5 inline mr-1"/>Candidatos No Aptos.
+          Usá <RotateCcw className="w-3.5 h-3.5 inline"/> <strong>Reactivar</strong> para devolverlos a "Todos los CVs" — la razón del descarte quedará visible como advertencia.
         </p>
       )}
 
@@ -600,20 +615,18 @@ export const AdminPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="text-sm text-manzur-primary">
-        Total: {displayCvs.length} CV{displayCvs.length!==1?'s':''}
-      </div>
+      <div className="text-sm text-manzur-primary">Total: {displayCvs.length} CV{displayCvs.length!==1?'s':''}</div>
 
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
       ) : Object.keys(groupedCvs).length===0 ? (
         <p className="text-center text-gray-500 py-8">
-          {activeTab==='todos'            ? 'No hay CVs disponibles'
-          :activeTab==='seleccionados'    ? 'No hay CVs en proceso de selección'
-          :activeTab==='entrevistar'      ? 'No hay candidatos para entrevistar'
-          :activeTab==='preseleccionados' ? 'No hay candidatos preseleccionados'
-          :activeTab==='ingresaron'       ? 'No hay candidatos seleccionados aún'
-          :                                'No hay candidatos descartados'}
+          {activeTab==='todos'?'No hay CVs disponibles'
+          :activeTab==='seleccionados'?'No hay CVs en proceso de selección'
+          :activeTab==='entrevistar'?'No hay candidatos para entrevistar'
+          :activeTab==='preseleccionados'?'No hay candidatos preseleccionados'
+          :activeTab==='ingresaron'?'No hay candidatos seleccionados aún'
+          :'No hay candidatos descartados'}
         </p>
       ) : (
         Object.entries(groupedCvs).map(([area,areaCvs])=>(
