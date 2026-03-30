@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
         <p className="text-center mb-8 tracking-wider text-black">
           ADMINISTRACIONES
         </p>
-        <p className="text-center mb-6 text-gray-600">Banco de Curriculums</p>
+        <p className="text-center mb-6 text-gray-600">Selección de Talentos</p>
         <button
           onClick={() => signIn()}
           className="w-full py-3 text-white font-medium rounded-lg flex items-center justify-center gap-2 bg-manzur-primary hover:bg-manzur-secondary transition-colors"
