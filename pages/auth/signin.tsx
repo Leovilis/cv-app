@@ -1,6 +1,7 @@
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
+import { ChevronDown, ChevronUp, LogIn } from 'lucide-react';
 
 export default function SignIn() {
   const router = useRouter();
@@ -8,6 +9,7 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,18 +80,28 @@ export default function SignIn() {
           </span>
         </button>
 
-        <div className="relative mb-6">
+         <div className="relative mb-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
+            <div className="w-full border-t border-gray-200"/>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-3 bg-white text-gray-500 font-medium">
-              O ingresa con email
-            </span>
+          <div className="relative flex justify-center">
+            <button
+              type="button"
+              onClick={() => { setShowEmailForm(v => !v); setError(''); }}
+              className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium transition-all duration-200
+                ${showEmailForm
+                  ? 'bg-gray-800 border-gray-800 text-white'
+                  : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-700'}`}
+            >
+              <LogIn className="w-3.5 h-3.5"/>
+              Ingresar con email corporativo
+              {showEmailForm ? <ChevronUp className="w-3.5 h-3.5"/> : <ChevronDown className="w-3.5 h-3.5"/>}
+            </button>
           </div>
         </div>
 
         {/* Login con Email/Password */}
+        {showEmailForm && (
         <form onSubmit={handleEmailLogin} className="space-y-5">
           <div>
             <label 
@@ -178,7 +190,7 @@ export default function SignIn() {
             )}
           </button>
         </form>
-
+)}
         <div className="mt-6 pt-6 border-t border-gray-100">
           <p className="text-xs text-gray-500 text-center leading-relaxed">
             Los usuarios normales usan <strong>Google</strong>.<br />

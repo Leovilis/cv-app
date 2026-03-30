@@ -3,6 +3,7 @@ export interface CV {
   nombre: string;
   apellido: string;
   dni: string;
+  email?: string;           // tomado de uploadedBy si es el mismo usuario
   telefonoArea: string;
   telefonoNumero: string;
   fechaNacimiento: string;
@@ -12,11 +13,11 @@ export interface CV {
   cvFileName: string;
   cvStoragePath: string;
   cvUrl?: string;
-  uploadedBy: string;
+  uploadedBy: string;       // email del que cargó — usado como contacto
   uploadedAt: string;
 
   // Búsquedas activas a las que se postuló
-  busquedasPostuladas?: string[]; // IDs de BusquedaActiva
+  busquedasPostuladas?: string[];
 
   // Campos de selección (gestionados por admin)
   puestoSeleccionado?: string;
@@ -25,11 +26,19 @@ export interface CV {
   notasAdmin?: string;
   motivoDescarte?: string;
 
+  // Exámenes solicitados
+  examenFisico?: boolean;
+  examenFisicoFecha?: string;
+  examenFisicoNotas?: string;
+  examenPsicotecnico?: boolean;
+  examenPsicotecnicoFecha?: string;
+  examenPsicotecnicoNotas?: string;
+
   // Repostulación de candidato previamente descartado
   repostulacionDescartado?: boolean;
   motivoDescarteAnterior?: string;
 
-  // Historial de estados (se acumula en cada cambio de estado)
+  // Historial de estados
   historialEstados?: HistorialEstado[];
 }
 
@@ -68,8 +77,9 @@ export type NivelFormacion = 'Secundario' | 'Terciario' | 'Universitario' | 'For
 
 export type EstadoSeleccion =
   | 'En Curso'
-  | 'Entrevista'
-  | 'Preseleccionado'
+  | 'Entrevista RRHH'
+  | 'Entrevista Coordinador'
+  | 'Terna Preseleccionados'
   | 'Seleccionado'
   | 'Descartado'
   | 'Aprobado'
