@@ -63,7 +63,7 @@ export default function Home() {
         <>
           <div className="max-w-2xl mx-auto">
             <h2 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 text-center text-manzur-primary">
-              Cargar Curriculum Vitae
+              Formulario de Talentos
             </h2>
             <p className="text-center text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
               Complete el formulario para enviar su CV

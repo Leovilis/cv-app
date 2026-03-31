@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
             <Logo width={90} height={36} />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-lg font-bold text-manzur-primary leading-tight sm:text-xs">MANZUR</h1>
+            <h1 className="text-lg font-bold text-manzur-primary leading-tight">MANZUR</h1>
             <p className="text-xs tracking-wider text-gray-600">ADMINISTRACIONES</p>
           </div>
         </div>
