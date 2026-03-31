@@ -3,11 +3,10 @@ import { Upload, User, Calendar, Briefcase, CreditCard, Phone, GraduationCap, Ma
 import { CVFormData, BusquedaActiva } from '@/lib/types';
 
 const AREAS = [
-  'Auditoría', 'Contable', 'Compras', 'Finanzas', 'Data Analytics',
-  'Sistemas', 'RRHH Hard y Soft', 'Calidad', 'Control Interno', 'RSE'
+  'Auditoría','Contable','Compras','Finanzas','Data Analytics',
+  'Sistemas','RRHH Hard y Soft','Calidad','Control Interno','RSE'
 ];
-
-const NIVELES_FORMACION = ['Secundario', 'Terciario', 'Universitario', 'Formación Superior'];
+const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
 
 interface CVUploadFormProps {
   onSuccess: () => void;
@@ -15,26 +14,16 @@ interface CVUploadFormProps {
 
 export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState<CVFormData>({
-    nombre: '',
-    apellido: '',
-    dni: '',
-    telefonoArea: '',
-    telefonoNumero: '',
-    fechaNacimiento: '',
-    nivelFormacion: '',
-    area: '',
-    lugarResidencia: '',
-    cv: null,
-    busquedasPostuladas: [],
+    nombre: '', apellido: '', dni: '', telefonoArea: '', telefonoNumero: '',
+    fechaNacimiento: '', nivelFormacion: '', area: '', lugarResidencia: '',
+    cv: null, busquedasPostuladas: [],
   });
-
-  const [errors, setErrors]             = useState<Partial<Record<keyof CVFormData, string>>>({});
-  const [loading, setLoading]           = useState(false);
+  const [errors, setErrors]                   = useState<Partial<Record<keyof CVFormData, string>>>({});
+  const [loading, setLoading]                 = useState(false);
   const [postulaBusqueda, setPostulaBusqueda] = useState(false);
-  const [busquedas, setBusquedas]       = useState<BusquedaActiva[]>([]);
+  const [busquedas, setBusquedas]             = useState<BusquedaActiva[]>([]);
   const [loadingBusquedas, setLoadingBusquedas] = useState(false);
 
-  // Cargar búsquedas activas cuando el usuario tilda el checkbox
   useEffect(() => {
     if (!postulaBusqueda) return;
     setLoadingBusquedas(true);
@@ -64,51 +53,43 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async () => {
     const newErrors: Partial<Record<keyof CVFormData, string>> = {};
-
-    if (!formData.nombre.trim())        newErrors.nombre = 'El nombre es requerido';
-    if (!formData.apellido.trim())      newErrors.apellido = 'El apellido es requerido';
+    if (!formData.nombre.trim())          newErrors.nombre = 'El nombre es requerido';
+    if (!formData.apellido.trim())        newErrors.apellido = 'El apellido es requerido';
     if (!/^\d{7,8}$/.test(formData.dni)) newErrors.dni = 'DNI inválido (7-8 dígitos)';
     if (!/^\d{2,4}$/.test(formData.telefonoArea) || !/^\d{6,8}$/.test(formData.telefonoNumero))
       newErrors.telefonoArea = 'Teléfono inválido';
     if (!validateDate(formData.fechaNacimiento))
       newErrors.fechaNacimiento = 'Formato inválido (dd/MM/yyyy)';
-    if (!formData.nivelFormacion)       newErrors.nivelFormacion = 'Seleccione un nivel de formación';
+    if (!formData.nivelFormacion)         newErrors.nivelFormacion = 'Seleccione un nivel de formación';
     if (!formData.lugarResidencia.trim()) newErrors.lugarResidencia = 'El lugar de residencia es requerido';
-    if (!formData.cv)                   newErrors.cv = 'Debe subir un CV en PDF';
+    if (!formData.cv)                     newErrors.cv = 'Debe subir un CV en PDF';
     if (postulaBusqueda && formData.busquedasPostuladas.length === 0)
-      newErrors.busquedasPostuladas = 'Seleccioná al menos una búsqueda activa';
+      newErrors.busquedasPostuladas = 'Seleccioná al menos una búsqueda';
 
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setLoading(true);
     try {
       const fd = new FormData();
-      fd.append('nombre',          formData.nombre);
-      fd.append('apellido',        formData.apellido);
-      fd.append('dni',             formData.dni);
-      fd.append('telefonoArea',    formData.telefonoArea);
-      fd.append('telefonoNumero',  formData.telefonoNumero);
-      fd.append('fechaNacimiento', formData.fechaNacimiento);
-      fd.append('nivelFormacion',  formData.nivelFormacion);
-      fd.append('area',            formData.area || 'Genérico');
-      fd.append('lugarResidencia', formData.lugarResidencia);
+      fd.append('nombre',           formData.nombre);
+      fd.append('apellido',         formData.apellido);
+      fd.append('dni',              formData.dni);
+      fd.append('telefonoArea',     formData.telefonoArea);
+      fd.append('telefonoNumero',   formData.telefonoNumero);
+      fd.append('fechaNacimiento',  formData.fechaNacimiento);
+      fd.append('nivelFormacion',   formData.nivelFormacion);
+      fd.append('area',             formData.area || 'Genérico');
+      fd.append('lugarResidencia',  formData.lugarResidencia);
       fd.append('busquedasPostuladas', JSON.stringify(formData.busquedasPostuladas));
-      fd.append('cv',              formData.cv!);
+      fd.append('cv',               formData.cv!);
 
       const response = await fetch('/api/cv/upload', { method: 'POST', body: fd });
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || 'Error al subir el CV');
 
-      if (data.repostulacionDescartado) {
-        console.warn('⚠️ Repostulación de candidato descartado:', data.motivoDescarteAnterior);
-      } else if (data.replaced) {
-        alert('CV actualizado exitosamente. Se reemplazó el CV anterior.');
-      }
-
       setFormData({
-        nombre: '', apellido: '', dni: '', telefonoArea: '', telefonoNumero: '',
-        fechaNacimiento: '', nivelFormacion: '', area: '', lugarResidencia: '',
+        nombre:'', apellido:'', dni:'', telefonoArea:'', telefonoNumero:'',
+        fechaNacimiento:'', nivelFormacion:'', area:'', lugarResidencia:'',
         cv: null, busquedasPostuladas: [],
       });
       setErrors({});
@@ -131,139 +112,110 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     }
   };
 
+  // Clases reutilizables
+  const inputCls = "w-full px-4 py-3 border border-manzur-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-manzur-primary text-base";
+  const labelCls = "block text-sm font-medium mb-1.5 text-manzur-primary";
+  const errorCls = "text-red-500 text-xs mt-1";
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
+    <div className="space-y-5">
 
       {/* Nombre y Apellido */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-2 text-manzur-primary">
-            <User className="inline w-4 h-4 mr-1"/>Nombre *
-          </label>
+          <label className={labelCls}><User className="inline w-4 h-4 mr-1"/>Nombre *</label>
           <input type="text" value={formData.nombre}
             onChange={e => setFormData({...formData, nombre: e.target.value})}
-            className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
-          {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
+            className={inputCls} disabled={loading} autoComplete="given-name"/>
+          {errors.nombre && <p className={errorCls}>{errors.nombre}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2 text-manzur-primary">
-            <User className="inline w-4 h-4 mr-1"/>Apellido *
-          </label>
+          <label className={labelCls}><User className="inline w-4 h-4 mr-1"/>Apellido *</label>
           <input type="text" value={formData.apellido}
             onChange={e => setFormData({...formData, apellido: e.target.value})}
-            className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
-          {errors.apellido && <p className="text-red-500 text-sm mt-1">{errors.apellido}</p>}
+            className={inputCls} disabled={loading} autoComplete="family-name"/>
+          {errors.apellido && <p className={errorCls}>{errors.apellido}</p>}
         </div>
       </div>
 
-      {/* DNI y Fecha de Nacimiento */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* DNI y Fecha */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-2 text-manzur-primary">
-            <CreditCard className="inline w-4 h-4 mr-1"/>DNI *
-          </label>
-          <input type="text" placeholder="12345678" value={formData.dni}
+          <label className={labelCls}><CreditCard className="inline w-4 h-4 mr-1"/>DNI *</label>
+          <input type="tel" inputMode="numeric" placeholder="12345678" value={formData.dni}
             onChange={e => setFormData({...formData, dni: e.target.value.replace(/\D/g,'')})}
-            maxLength={8}
-            className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
-          {errors.dni && <p className="text-red-500 text-sm mt-1">{errors.dni}</p>}
+            maxLength={8} className={inputCls} disabled={loading}/>
+          {errors.dni && <p className={errorCls}>{errors.dni}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2 text-manzur-primary">
-            <Calendar className="inline w-4 h-4 mr-1"/>Fecha de Nacimiento *
-          </label>
-          <input type="text" placeholder="25/12/1990" value={formData.fechaNacimiento}
+          <label className={labelCls}><Calendar className="inline w-4 h-4 mr-1"/>Fecha de Nacimiento *</label>
+          <input type="text" inputMode="numeric" placeholder="25/12/1990" value={formData.fechaNacimiento}
             onChange={e => setFormData({...formData, fechaNacimiento: e.target.value})}
-            className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
-          {errors.fechaNacimiento && <p className="text-red-500 text-sm mt-1">{errors.fechaNacimiento}</p>}
+            className={inputCls} disabled={loading}/>
+          {errors.fechaNacimiento && <p className={errorCls}>{errors.fechaNacimiento}</p>}
         </div>
       </div>
 
       {/* Teléfono */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-manzur-primary">
-          <Phone className="inline w-4 h-4 mr-1"/>Teléfono *
-        </label>
+        <label className={labelCls}><Phone className="inline w-4 h-4 mr-1"/>Teléfono *</label>
         <div className="grid grid-cols-3 gap-2">
-          <input type="text" placeholder="Área" value={formData.telefonoArea}
+          <input type="tel" inputMode="numeric" placeholder="Área" value={formData.telefonoArea}
             onChange={e => setFormData({...formData, telefonoArea: e.target.value.replace(/\D/g,'')})}
-            maxLength={4}
-            className="px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
-          <input type="text" placeholder="Número" value={formData.telefonoNumero}
+            maxLength={4} className={`${inputCls} text-center`} disabled={loading}/>
+          <input type="tel" inputMode="numeric" placeholder="Número" value={formData.telefonoNumero}
             onChange={e => setFormData({...formData, telefonoNumero: e.target.value.replace(/\D/g,'')})}
-            maxLength={8}
-            className="col-span-2 px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-            disabled={loading}/>
+            maxLength={8} className={`${inputCls} col-span-2`} disabled={loading}/>
         </div>
-        {errors.telefonoArea && <p className="text-red-500 text-sm mt-1">{errors.telefonoArea}</p>}
+        {errors.telefonoArea && <p className={errorCls}>{errors.telefonoArea}</p>}
       </div>
 
-      {/* Nivel de Formación */}
+      {/* Formación */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-manzur-primary">
-          <GraduationCap className="inline w-4 h-4 mr-1"/>Nivel de Formación *
-        </label>
+        <label className={labelCls}><GraduationCap className="inline w-4 h-4 mr-1"/>Nivel de Formación *</label>
         <select value={formData.nivelFormacion}
           onChange={e => setFormData({...formData, nivelFormacion: e.target.value})}
-          className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-          disabled={loading}>
+          className={inputCls} disabled={loading}>
           <option value="">Seleccione su nivel de formación</option>
           {NIVELES_FORMACION.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
-        {errors.nivelFormacion && <p className="text-red-500 text-sm mt-1">{errors.nivelFormacion}</p>}
+        {errors.nivelFormacion && <p className={errorCls}>{errors.nivelFormacion}</p>}
       </div>
 
       {/* Lugar de Residencia */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-manzur-primary">
-          <MapPin className="inline w-4 h-4 mr-1"/>Lugar de Residencia *
-        </label>
+        <label className={labelCls}><MapPin className="inline w-4 h-4 mr-1"/>Lugar de Residencia *</label>
         <input type="text" placeholder="Ej: San Salvador de Jujuy" value={formData.lugarResidencia}
           onChange={e => setFormData({...formData, lugarResidencia: e.target.value})}
-          className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-          disabled={loading}/>
-        {errors.lugarResidencia && <p className="text-red-500 text-sm mt-1">{errors.lugarResidencia}</p>}
+          className={inputCls} disabled={loading} autoComplete="address-level2"/>
+        {errors.lugarResidencia && <p className={errorCls}>{errors.lugarResidencia}</p>}
       </div>
 
       {/* Área */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-manzur-primary">
-          <Briefcase className="inline w-4 h-4 mr-1"/>Área (opcional)
-        </label>
+        <label className={labelCls}><Briefcase className="inline w-4 h-4 mr-1"/>Área (opcional)</label>
         <select value={formData.area}
           onChange={e => setFormData({...formData, area: e.target.value})}
-          className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-          disabled={loading}>
+          className={inputCls} disabled={loading}>
           <option value="">Seleccione un área</option>
           {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
 
       {/* Búsquedas activas */}
-      <div className="border border-manzur-secondary rounded-lg overflow-hidden">
-        {/* Checkbox trigger */}
-        <label className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors select-none
+      <div className="border border-manzur-secondary rounded-xl overflow-hidden">
+        <label className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors select-none
           ${postulaBusqueda ? 'bg-manzur-primary text-white' : 'bg-gray-50 hover:bg-gray-100 text-manzur-primary'}`}>
-          <input
-            type="checkbox"
-            checked={postulaBusqueda}
+          <input type="checkbox" checked={postulaBusqueda}
             onChange={e => {
               setPostulaBusqueda(e.target.checked);
               if (!e.target.checked) setFormData(prev => ({...prev, busquedasPostuladas: []}));
             }}
-            className="w-4 h-4 accent-white"
-            disabled={loading}
-          />
+            className="w-5 h-5 accent-white flex-shrink-0" disabled={loading}/>
           <Search className="w-4 h-4 flex-shrink-0"/>
-          <span className="font-medium text-sm">Quiero postularme a una búsqueda activa</span>
+          <span className="font-medium text-sm leading-tight">Quiero postularme a una búsqueda activa</span>
         </label>
 
-        {/* Lista desplegable de búsquedas */}
         {postulaBusqueda && (
           <div className="p-4 border-t border-manzur-secondary bg-white">
             {loadingBusquedas ? (
@@ -279,45 +231,55 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
                   const selected = formData.busquedasPostuladas.includes(b.id!);
                   return (
                     <label key={b.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all
-                        ${selected
-                          ? 'border-manzur-primary bg-blue-50'
-                          : 'border-gray-200 hover:border-manzur-secondary'}`}>
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all active:scale-[0.98]
+                        ${selected ? 'border-manzur-primary bg-blue-50' : 'border-gray-200 hover:border-manzur-secondary'}`}>
                       <input type="checkbox" checked={selected} onChange={() => toggleBusqueda(b.id!)}
-                        className="w-4 h-4 mt-0.5 accent-manzur-primary" disabled={loading}/>
+                        className="w-5 h-5 mt-0.5 accent-manzur-primary flex-shrink-0" disabled={loading}/>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-gray-900">{b.titulo}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {b.area} · {b.lugarResidencia}
-                        </p>
+                        <p className="font-semibold text-sm text-gray-900 leading-tight">{b.titulo}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{b.area} · {b.lugarResidencia}</p>
                       </div>
                     </label>
                   );
                 })}
               </div>
             )}
-            {errors.busquedasPostuladas && (
-              <p className="text-red-500 text-sm mt-2">{errors.busquedasPostuladas}</p>
-            )}
+            {errors.busquedasPostuladas && <p className={errorCls}>{errors.busquedasPostuladas}</p>}
           </div>
         )}
       </div>
 
       {/* CV PDF */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-manzur-primary">
-          <Upload className="inline w-4 h-4 mr-1"/>Curriculum Vitae (PDF) *
+        <label className={labelCls}><Upload className="inline w-4 h-4 mr-1"/>Curriculum Vitae (PDF) *</label>
+        <label className={`flex flex-col items-center justify-center gap-2 w-full px-4 py-6 border-2 border-dashed border-manzur-secondary rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <Upload className="w-8 h-8 text-manzur-secondary"/>
+          <span className="text-sm text-gray-600 text-center">
+            {formData.cv ? (
+              <span className="text-green-600 font-medium">✓ {formData.cv.name}</span>
+            ) : (
+              <>
+                <span className="font-medium text-manzur-primary">Seleccionar archivo PDF</span>
+                <br/>
+                <span className="text-xs text-gray-400">Tocá para elegir desde tu dispositivo</span>
+              </>
+            )}
+          </span>
+          <input type="file" accept="application/pdf" onChange={handleFileChange}
+            className="hidden" disabled={loading}/>
         </label>
-        <input type="file" accept="application/pdf" onChange={handleFileChange}
-          className="w-full px-4 py-2 border border-manzur-secondary rounded-lg focus:outline-none"
-          disabled={loading}/>
-        {errors.cv && <p className="text-red-500 text-sm mt-1">{errors.cv}</p>}
-        {formData.cv && <p className="text-green-600 text-sm mt-1">✓ {formData.cv.name}</p>}
+        {errors.cv && <p className={errorCls}>{errors.cv}</p>}
       </div>
 
+      {/* Submit */}
       <button onClick={handleSubmit} disabled={loading}
-        className="w-full py-3 text-white font-medium rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-        {loading ? 'Enviando...' : 'Enviar CV'}
+        className="w-full py-4 text-white font-semibold rounded-xl bg-manzur-primary hover:bg-manzur-secondary active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md">
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+            Enviando...
+          </span>
+        ) : 'Enviar CV'}
       </button>
     </div>
   );

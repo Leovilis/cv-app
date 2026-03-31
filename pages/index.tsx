@@ -15,8 +15,11 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-manzur-primary text-xl">Cargando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-manzur-primary border-t-transparent rounded-full animate-spin"/>
+          <p className="text-manzur-primary text-sm font-medium">Cargando...</p>
+        </div>
       </div>
     );
   }
@@ -29,11 +32,11 @@ export default function Home() {
     <Layout>
       {isAdmin ? (
         <>
-          {/* Pestañas de admin */}
-          <div className="flex gap-1 border-b-2 border-gray-200 mb-8">
+          {/* Pestañas admin — scroll horizontal en mobile */}
+          <div className="flex border-b-2 border-gray-200 mb-5 sm:mb-8 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
             <button
               onClick={() => setAdminTab('panel')}
-              className={`px-6 py-3 font-semibold text-sm transition-colors ${
+              className={`px-4 sm:px-6 py-3 font-semibold text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                 adminTab === 'panel'
                   ? 'border-b-2 border-manzur-primary text-manzur-primary'
                   : 'text-gray-500 hover:text-manzur-primary'
@@ -43,7 +46,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setAdminTab('busquedas')}
-              className={`px-6 py-3 font-semibold text-sm transition-colors ${
+              className={`px-4 sm:px-6 py-3 font-semibold text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                 adminTab === 'busquedas'
                   ? 'border-b-2 border-manzur-primary text-manzur-primary'
                   : 'text-gray-500 hover:text-manzur-primary'
@@ -53,30 +56,33 @@ export default function Home() {
             </button>
           </div>
 
-          {adminTab === 'panel' && <AdminPanel />}
+          {adminTab === 'panel'    && <AdminPanel />}
           {adminTab === 'busquedas' && <AdminSearchPanel />}
         </>
       ) : (
         <>
-          <h2 className="text-3xl font-bold mb-2 text-center text-manzur-primary">
-            Cargar Curriculum Vitae
-          </h2>
-          <p className="text-center text-gray-600 mb-8">
-            Complete el formulario para enviar su CV
-          </p>
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 text-center text-manzur-primary">
+              Cargar Curriculum Vitae
+            </h2>
+            <p className="text-center text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
+              Complete el formulario para enviar su CV
+            </p>
 
-          {showSuccess && (
-            <div className="max-w-2xl mx-auto mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-              ✓ CV enviado exitosamente
-            </div>
-          )}
+            {showSuccess && (
+              <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm flex items-center gap-2">
+                <span className="text-lg">✓</span>
+                CV enviado exitosamente
+              </div>
+            )}
 
-          <CVUploadForm
-            onSuccess={() => {
-              setShowSuccess(true);
-              setTimeout(() => setShowSuccess(false), 5000);
-            }}
-          />
+            <CVUploadForm
+              onSuccess={() => {
+                setShowSuccess(true);
+                setTimeout(() => setShowSuccess(false), 5000);
+              }}
+            />
+          </div>
         </>
       )}
     </Layout>
