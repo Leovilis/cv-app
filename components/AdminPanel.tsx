@@ -3,7 +3,7 @@ import {
   Download, Trash2, RefreshCw, UserCheck, X, Check,
   Calendar, Video, ArrowLeftCircle, Clock, ChevronLeft, ChevronRight,
   AlertTriangle, Trophy, ThumbsDown, RotateCcw, History,
-  Mail, FlaskConical, Brain, ClipboardList
+  Mail, FlaskConical, Brain
 } from 'lucide-react';
 import { CV } from '@/lib/types';
 
@@ -162,12 +162,16 @@ type ExamType = 'fisico'|'psicotecnico';
 const ExamModal: React.FC<{
   cv: CV;
   tipo: ExamType;
-  onConfirm: (notas:string) => void;
+  onConfirm: (notas:string, fecha:string) => void;
   onCancel: () => void;
-}> = ({ cv, tipo, onConfirm, onCancel }) => {
+  onCancelarExamen: () => void;
+}> = ({ cv, tipo, onConfirm, onCancel, onCancelarExamen }) => {
   const [notas, setNotas] = useState('');
-  const cfg = EXAM_BADGE[tipo];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [fecha, setFecha] = useState(todayStr);
+  const cfg  = EXAM_BADGE[tipo];
   const icon = tipo==='fisico' ? <FlaskConical className="w-5 h-5"/> : <Brain className="w-5 h-5"/>;
+  const yaAgendado = tipo==='fisico' ? !!cv.examenFisico : !!cv.examenPsicotecnico;
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
@@ -176,28 +180,40 @@ const ExamModal: React.FC<{
             {icon}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900">Solicitar {cfg.label}</h3>
+            <h3 className="font-bold text-gray-900">{yaAgendado ? 'Editar' : 'Solicitar'} {cfg.label}</h3>
             <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido} — DNI {cv.dni}</p>
           </div>
         </div>
         <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Calendar className="w-3.5 h-3.5 inline mr-1"/>Fecha del examen *
+            </label>
+            <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas adicionales (opcional)</label>
             <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={3}
               placeholder={`Indicaciones para el ${cfg.label.toLowerCase()}...`}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 resize-none"/>
           </div>
-          <p className="text-xs text-gray-400">Se registrará la fecha de solicitud automáticamente.</p>
         </div>
         <div className="flex gap-3 mt-5">
-          <button onClick={()=>onConfirm(notas)}
+          <button onClick={()=>{if(!fecha){alert('Seleccioná una fecha');return;}onConfirm(notas,fecha);}}
             className={`flex-1 py-2.5 ${cfg.bg} border-2 ${cfg.border} ${cfg.text} font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 hover:opacity-80`}>
-            {icon} Confirmar solicitud
+            {icon} {yaAgendado ? 'Actualizar' : 'Confirmar solicitud'}
           </button>
-          <button onClick={onCancel} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm">
-            Cancelar
+          <button onClick={onCancel} className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm">
+            Cerrar
           </button>
         </div>
+        {yaAgendado && (
+          <button onClick={()=>{if(confirm(`¿Cancelar el ${cfg.label} de ${cv.nombre} ${cv.apellido}?`)) onCancelarExamen();}}
+            className="mt-3 w-full py-2 text-red-600 border border-red-300 hover:bg-red-50 font-medium rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+            <X className="w-4 h-4"/> Cancelar {cfg.label}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -397,18 +413,34 @@ export const AdminPanel: React.FC = () => {
   };
 
   // ── Guardar examen ────────────────────────────────────────────────────────
-  const handleSaveExam = async (cv:CV, tipo:ExamType, notas:string) => {
-    const field     = tipo==='fisico' ? 'examenFisico' : 'examenPsicotecnico';
-    const fieldFecha = tipo==='fisico' ? 'examenFisicoFecha' : 'examenPsicotecnicoFecha';
-    const fieldNotas = tipo==='fisico' ? 'examenFisicoNotas' : 'examenPsicotecnicoNotas';
+  const handleSaveExam = async (cv:CV, tipo:ExamType, notas:string, fecha:string) => {
+    const field      = tipo==='fisico' ? 'examenFisico'        : 'examenPsicotecnico';
+    const fieldFecha = tipo==='fisico' ? 'examenFisicoFecha'   : 'examenPsicotecnicoFecha';
+    const fieldNotas = tipo==='fisico' ? 'examenFisicoNotas'   : 'examenPsicotecnicoNotas';
+    // fecha viene como 'YYYY-MM-DD', guardamos como ISO
+    const fechaISO = fecha ? new Date(fecha+'T00:00:00').toISOString() : new Date().toISOString();
     try {
       const r=await fetch('/api/cv/update-exam',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ cvId:cv.id, [field]:true, [fieldFecha]:new Date().toISOString(), [fieldNotas]:notas }),
+        body:JSON.stringify({ cvId:cv.id, [field]:true, [fieldFecha]:fechaISO, [fieldNotas]:notas }),
       });
       if(r.ok){setExamModal(null);fetchCVs();}
       else{const d=await r.json();alert(d.error||'Error al guardar examen');}
     } catch { alert('Error al guardar examen'); }
+  };
+
+  const handleCancelarExamen = async (cv:CV, tipo:ExamType) => {
+    const field      = tipo==='fisico' ? 'examenFisico'        : 'examenPsicotecnico';
+    const fieldFecha = tipo==='fisico' ? 'examenFisicoFecha'   : 'examenPsicotecnicoFecha';
+    const fieldNotas = tipo==='fisico' ? 'examenFisicoNotas'   : 'examenPsicotecnicoNotas';
+    try {
+      const r=await fetch('/api/cv/update-exam',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ cvId:cv.id, [field]:false, [fieldFecha]:null, [fieldNotas]:'' }),
+      });
+      if(r.ok){setExamModal(null);fetchCVs();}
+      else{const d=await r.json();alert(d.error||'Error al cancelar examen');}
+    } catch { alert('Error al cancelar examen'); }
   };
 
   // ── Enviar mail ───────────────────────────────────────────────────────────
@@ -416,7 +448,15 @@ export const AdminPanel: React.FC = () => {
     const email = cv.email || cv.uploadedBy;
     if(!email){alert('No hay email registrado para este candidato.');return;}
     const subject = encodeURIComponent(`Proceso de selección — ${cv.puestoSeleccionado||'Manzur Administraciones'}`);
-    const body    = encodeURIComponent(`Estimado/a ${cv.nombre} ${cv.apellido},\n\n`);
+    const examLines:string[] = [];
+    if(cv.examenFisico && cv.examenFisicoFecha)
+      examLines.push(`• Examen Físico: ${new Date(cv.examenFisicoFecha).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`);
+    if(cv.examenPsicotecnico && cv.examenPsicotecnicoFecha)
+      examLines.push(`• Examen Psicotécnico: ${new Date(cv.examenPsicotecnicoFecha).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`);
+    const examSection = examLines.length > 0
+      ? `\nTenés agendados los siguientes exámenes:\n${examLines.join('\n')}\n`
+      : '';
+    const body = encodeURIComponent(`Estimado/a ${cv.nombre} ${cv.apellido},\n\n${examSection}\n`);
     window.open(`mailto:${email}?subject=${subject}&body=${body}`,'_blank');
   };
 
@@ -471,17 +511,25 @@ export const AdminPanel: React.FC = () => {
     const hasFisico = cv.examenFisico;
     const hasPsi    = cv.examenPsicotecnico;
     if(!hasFisico&&!hasPsi) return null;
-    const tipo = hasFisico&&hasPsi?'ambos':hasFisico?'fisico':'psicotecnico';
-    const cfg  = EXAM_BADGE[tipo];
     return (
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${cfg.bg} ${cfg.border} ${cfg.text}`}>
-        <ClipboardList className="w-3.5 h-3.5"/>
-        {cfg.label}
-        {hasFisico&&cv.examenFisicoFecha&&(
-          <span className="font-normal opacity-70">· {new Date(cv.examenFisicoFecha).toLocaleDateString('es-AR')}</span>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {hasFisico&&(
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.fisico.bg} ${EXAM_BADGE.fisico.border} ${EXAM_BADGE.fisico.text}`}>
+            <FlaskConical className="w-3.5 h-3.5"/>
+            {EXAM_BADGE.fisico.label}
+            {cv.examenFisicoFecha&&(
+              <span className="font-normal opacity-75">· {new Date(cv.examenFisicoFecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})}</span>
+            )}
+          </div>
         )}
-        {hasPsi&&cv.examenPsicotecnicoFecha&&!hasFisico&&(
-          <span className="font-normal opacity-70">· {new Date(cv.examenPsicotecnicoFecha).toLocaleDateString('es-AR')}</span>
+        {hasPsi&&(
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.psicotecnico.bg} ${EXAM_BADGE.psicotecnico.border} ${EXAM_BADGE.psicotecnico.text}`}>
+            <Brain className="w-3.5 h-3.5"/>
+            {EXAM_BADGE.psicotecnico.label}
+            {cv.examenPsicotecnicoFecha&&(
+              <span className="font-normal opacity-75">· {new Date(cv.examenPsicotecnicoFecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})}</span>
+            )}
+          </div>
         )}
       </div>
     );
@@ -703,7 +751,10 @@ export const AdminPanel: React.FC = () => {
     <div className="space-y-6">
 
       {discardingCV&&<DiscardModal cv={discardingCV} onConfirm={(m,n)=>handleDiscard(discardingCV,m,n)} onCancel={()=>setDiscardingCV(null)}/>}
-      {examModal&&<ExamModal cv={examModal.cv} tipo={examModal.tipo} onConfirm={(n)=>handleSaveExam(examModal.cv,examModal.tipo,n)} onCancel={()=>setExamModal(null)}/>}
+      {examModal&&<ExamModal cv={examModal.cv} tipo={examModal.tipo}
+        onConfirm={(n,f)=>handleSaveExam(examModal.cv,examModal.tipo,n,f)}
+        onCancel={()=>setExamModal(null)}
+        onCancelarExamen={()=>handleCancelarExamen(examModal.cv,examModal.tipo)}/>}
 
       {/* Pestañas */}
       <div className="flex flex-wrap border-b-2 border-gray-200">
