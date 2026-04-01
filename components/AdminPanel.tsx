@@ -662,7 +662,7 @@ export const AdminPanel: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Notas (opcional)</label>
                 <textarea value={selectionData.notas} onChange={e=>setSelectionData({...selectionData,notas:e.target.value})}
-                  rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg"/>
+                  rows={5} className="w-full px-3 py-2 border border-gray-300 rounded-lg" onBlur={() => {}}/>
               </div>
               <div className="flex gap-2">
                 <button onClick={()=>handleSaveSelection(cv.id!)}
