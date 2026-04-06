@@ -3,17 +3,18 @@ export interface CV {
   nombre: string;
   apellido: string;
   dni: string;
-  email?: string;           // tomado de uploadedBy si es el mismo usuario
+  email?: string;
   telefonoArea: string;
   telefonoNumero: string;
   fechaNacimiento: string;
   nivelFormacion: string;
   area: string;
+  subArea?: string;             // Puesto específico dentro del área
   lugarResidencia: string;
   cvFileName: string;
   cvStoragePath: string;
   cvUrl?: string;
-  uploadedBy: string;       // email del que cargó — usado como contacto
+  uploadedBy: string;
   uploadedAt: string;
 
   // Búsquedas activas a las que se postuló
@@ -30,9 +31,17 @@ export interface CV {
   examenFisico?: boolean;
   examenFisicoFecha?: string;
   examenFisicoNotas?: string;
+  examenFisicoResultado?: 'Apto' | 'Apto con observaciones' | 'No Apto' | '';
   examenPsicotecnico?: boolean;
   examenPsicotecnicoFecha?: string;
   examenPsicotecnicoNotas?: string;
+  examenPsicotecnicoResultado?: 'Apto' | 'Apto con observaciones' | 'No Apto' | '';
+
+  // Prioridad en terna (por área+puesto, 1 = mayor prioridad)
+  prioridadTerna?: number;
+
+  // Referencias laborales obtenidas en entrevista RRHH
+  referenciasLaborales?: string;
 
   // Repostulación de candidato previamente descartado
   repostulacionDescartado?: boolean;

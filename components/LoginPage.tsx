@@ -64,22 +64,7 @@ export const LoginPage: React.FC = () => {
           <div className="flex-1 h-px bg-gray-200"/>
         </div>
 
-        {/* Botón que despliega el formulario admin
-        <button
-          onClick={() => { setShowEmailForm(v => !v); setError(''); }}
-          className={`w-full py-2.5 font-medium rounded-lg flex items-center justify-center gap-2 border-2 transition-all text-sm
-            ${showEmailForm
-              ? 'border-manzur-primary bg-manzur-primary text-white'
-              : 'border-manzur-secondary text-manzur-primary hover:bg-gray-50'}`}
-        >
-          <LogIn className="w-4 h-4" />
-          Ingresar como administrador
-          {showEmailForm
-            ? <ChevronUp className="w-4 h-4 ml-auto"/>
-            : <ChevronDown className="w-4 h-4 ml-auto"/>}
-        </button> */}
-
-        {/* Campos colapsables */}
+       {/* Campos colapsables */}
         {showEmailForm && (
           <div className="mt-4 space-y-3">
             <div>

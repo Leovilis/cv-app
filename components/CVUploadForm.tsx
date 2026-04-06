@@ -1,28 +1,114 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, User, Calendar, Briefcase, CreditCard, Phone, GraduationCap, MapPin, Search } from 'lucide-react';
+import { Upload, User, Calendar, Briefcase, CreditCard, Phone, GraduationCap, MapPin, Search, ChevronRight } from 'lucide-react';
 import { CVFormData, BusquedaActiva } from '@/lib/types';
 
-const AREAS = [
-  'Auditoría','Contable','Compras','Finanzas','Data Analytics',
-  'Sistemas','RRHH Hard y Soft','Calidad','Control Interno','RSE'
-];
-const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
+// ─── Áreas y sub-áreas ────────────────────────────────────────────────────────
+const AREAS_SUBAREAS: Record<string, string[]> = {
+  'Planificación Estratégica': [
+    'Coordinador Planificación Estratégica',
+    'Analista Planif. Estratégica',
+    'Analista de Costos',
+  ],
+  'Finanzas': [
+    'Coordinadora Finanzas',
+    'Tesorero',
+    'Analista de Finanzas',
+    'Administrativo Finanzas',
+  ],
+  'Contable': [
+    'Coordinador Contable',
+    'Analista Contable Bebidas',
+    'Analista Contable Servicios',
+    'Administrativo Contable Bebidas',
+    'Administrativo Contable Servicios',
+    'Administrativo Comercial',
+  ],
+  'Control de Gestión': [
+    'Analista Control de Gestión',
+  ],
+  'Impuestos': [
+    'Analista de Impuestos',
+    'Administrativo Impuestos',
+    'Administrativo de Facturación',
+  ],
+  'Auditoría Bebidas': [
+    'Coordinadora Auditoría',
+    'Auditor Interno de Bebidas',
+  ],
+  'Auditoría Producción y Servicios': [
+    'Responsable Auditoría PyS',
+    'Auditor Interno PyS',
+  ],
+  'Sistemas': [
+    'Coordinador Sistemas',
+    'Técnico Informático',
+  ],
+  'RRHH Hard': [
+    'Responsable RRHH Hard',
+    'Analista RRHH Hard',
+    'Analista Novedades RRHH Hard',
+  ],
+  'RRHH Soft': [
+    'Coordinadora RRHH Soft',
+    'Analista RRHH Soft',
+  ],
+  'Gestión de Calidad': [
+    'Coordinadora Gestión de Calidad',
+    'Analista Gestión de Calidad',
+  ],
+  'Gestión Documental': [
+    'Analista de Habilitaciones e Inocuidad Alimentaria',
+  ],
+  'RSE': [
+    'Responsable RSE',
+  ],
+  'Data Analytics': [
+    'Responsable Data Analytics',
+    'Analista de Datos',
+  ],
+  'Compras': [
+    'Responsable Compras',
+    'Administrativo de Compras',
+  ],
+  'Marketing': [
+    'Gerencia Marketing',
+    'Analista Marketing',
+  ],
+  'Maestranza': [
+    'Maestranza',
+  ],
+  'Coordinación General': [
+    'Coordinador General',
+  ],
+};
+
+const AREAS = Object.keys(AREAS_SUBAREAS).sort();
+
+const NIVELES_FORMACION = ['Secundario', 'Terciario', 'Universitario', 'Formación Superior'];
 
 interface CVUploadFormProps {
   onSuccess: () => void;
 }
 
+// Extendemos el estado local para incluir subArea
+interface FormState extends CVFormData {
+  subArea: string;
+}
+
 export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
-  const [formData, setFormData] = useState<CVFormData>({
+  const [formData, setFormData] = useState<FormState>({
     nombre: '', apellido: '', dni: '', telefonoArea: '', telefonoNumero: '',
-    fechaNacimiento: '', nivelFormacion: '', area: '', lugarResidencia: '',
-    cv: null, busquedasPostuladas: [],
+    fechaNacimiento: '', nivelFormacion: '', area: '', subArea: '',
+    lugarResidencia: '', cv: null, busquedasPostuladas: [],
   });
-  const [errors, setErrors]                   = useState<Partial<Record<keyof CVFormData, string>>>({});
-  const [loading, setLoading]                 = useState(false);
-  const [postulaBusqueda, setPostulaBusqueda] = useState(false);
-  const [busquedas, setBusquedas]             = useState<BusquedaActiva[]>([]);
+
+  const [errors, setErrors]                     = useState<Partial<Record<keyof FormState, string>>>({});
+  const [loading, setLoading]                   = useState(false);
+  const [postulaBusqueda, setPostulaBusqueda]   = useState(false);
+  const [busquedas, setBusquedas]               = useState<BusquedaActiva[]>([]);
   const [loadingBusquedas, setLoadingBusquedas] = useState(false);
+
+  const subAreasDisponibles = formData.area ? AREAS_SUBAREAS[formData.area] || [] : [];
 
   useEffect(() => {
     if (!postulaBusqueda) return;
@@ -52,7 +138,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    const newErrors: Partial<Record<keyof CVFormData, string>> = {};
+    const newErrors: Partial<Record<keyof FormState, string>> = {};
     if (!formData.nombre.trim())          newErrors.nombre = 'El nombre es requerido';
     if (!formData.apellido.trim())        newErrors.apellido = 'El apellido es requerido';
     if (!/^\d{7,8}$/.test(formData.dni)) newErrors.dni = 'DNI inválido (7-8 dígitos)';
@@ -62,6 +148,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       newErrors.fechaNacimiento = 'Formato inválido (dd/MM/yyyy)';
     if (!formData.nivelFormacion)         newErrors.nivelFormacion = 'Seleccione un nivel de formación';
     if (!formData.lugarResidencia.trim()) newErrors.lugarResidencia = 'El lugar de residencia es requerido';
+    if (!formData.area)                   newErrors.area = 'Seleccione un área';
+    if (formData.area && !formData.subArea) newErrors.subArea = 'Seleccione el puesto al que se postula';
     if (!formData.cv)                     newErrors.cv = 'Debe subir un CV en PDF';
     if (postulaBusqueda && formData.busquedasPostuladas.length === 0)
       newErrors.busquedasPostuladas = 'Seleccioná al menos una búsqueda';
@@ -71,17 +159,18 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     setLoading(true);
     try {
       const fd = new FormData();
-      fd.append('nombre',           formData.nombre);
-      fd.append('apellido',         formData.apellido);
-      fd.append('dni',              formData.dni);
-      fd.append('telefonoArea',     formData.telefonoArea);
-      fd.append('telefonoNumero',   formData.telefonoNumero);
-      fd.append('fechaNacimiento',  formData.fechaNacimiento);
-      fd.append('nivelFormacion',   formData.nivelFormacion);
-      fd.append('area',             formData.area || 'Genérico');
-      fd.append('lugarResidencia',  formData.lugarResidencia);
+      fd.append('nombre',            formData.nombre);
+      fd.append('apellido',          formData.apellido);
+      fd.append('dni',               formData.dni);
+      fd.append('telefonoArea',      formData.telefonoArea);
+      fd.append('telefonoNumero',    formData.telefonoNumero);
+      fd.append('fechaNacimiento',   formData.fechaNacimiento);
+      fd.append('nivelFormacion',    formData.nivelFormacion);
+      fd.append('area',              formData.area || 'Genérico');
+      fd.append('subArea',           formData.subArea || '');
+      fd.append('lugarResidencia',   formData.lugarResidencia);
       fd.append('busquedasPostuladas', JSON.stringify(formData.busquedasPostuladas));
-      fd.append('cv',               formData.cv!);
+      fd.append('cv',                formData.cv!);
 
       const response = await fetch('/api/cv/upload', { method: 'POST', body: fd });
       const data = await response.json();
@@ -89,8 +178,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
 
       setFormData({
         nombre:'', apellido:'', dni:'', telefonoArea:'', telefonoNumero:'',
-        fechaNacimiento:'', nivelFormacion:'', area:'', lugarResidencia:'',
-        cv: null, busquedasPostuladas: [],
+        fechaNacimiento:'', nivelFormacion:'', area:'', subArea:'',
+        lugarResidencia:'', cv: null, busquedasPostuladas: [],
       });
       setErrors({});
       setPostulaBusqueda(false);
@@ -112,8 +201,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     }
   };
 
-  // Clases reutilizables
-  const inputCls = "w-full px-4 py-3 border border-manzur-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-manzur-primary text-base";
+  const inputCls = "w-full px-4 py-3 border border-manzur-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-manzur-primary text-base bg-white";
   const labelCls = "block text-sm font-medium mb-1.5 text-manzur-primary";
   const errorCls = "text-red-500 text-xs mt-1";
 
@@ -191,15 +279,74 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         {errors.lugarResidencia && <p className={errorCls}>{errors.lugarResidencia}</p>}
       </div>
 
-      {/* Área */}
-      <div>
-        <label className={labelCls}><Briefcase className="inline w-4 h-4 mr-1"/>Área (opcional)</label>
-        <select value={formData.area}
-          onChange={e => setFormData({...formData, area: e.target.value})}
-          className={inputCls} disabled={loading}>
-          <option value="">Seleccione un área</option>
-          {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+      {/* Área + Sub-área — dos pasos encadenados */}
+      <div className="border border-manzur-secondary rounded-xl overflow-hidden">
+        {/* Header del bloque */}
+        <div className="px-4 py-2.5 bg-gray-50 border-b border-manzur-secondary">
+          <p className="text-sm font-medium text-manzur-primary flex items-center gap-1.5">
+            <Briefcase className="w-4 h-4"/>Área y Puesto *
+          </p>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Paso 1 — Área */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              1. Seleccioná el área
+            </label>
+            <select
+              value={formData.area}
+              onChange={e => setFormData({...formData, area: e.target.value, subArea: ''})}
+              className={inputCls}
+              disabled={loading}
+            >
+              <option value="">— Elegí un área —</option>
+              {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            {errors.area && <p className={errorCls}>{errors.area}</p>}
+          </div>
+
+          {/* Flecha visual entre pasos */}
+          {formData.area && (
+            <div className="flex items-center gap-2 py-1">
+              <div className="flex-1 h-px bg-gray-200"/>
+              <ChevronRight className="w-4 h-4 text-manzur-primary flex-shrink-0"/>
+              <div className="flex-1 h-px bg-gray-200"/>
+            </div>
+          )}
+
+          {/* Paso 2 — Sub-área (aparece al elegir área) */}
+          {formData.area && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                2. Seleccioná el puesto
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                {subAreasDisponibles.map(sub => (
+                  <label key={sub}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all active:scale-[0.98]
+                      ${formData.subArea === sub
+                        ? 'border-manzur-primary bg-blue-50'
+                        : 'border-gray-200 hover:border-manzur-secondary bg-white'}`}>
+                    <input
+                      type="radio"
+                      name="subArea"
+                      value={sub}
+                      checked={formData.subArea === sub}
+                      onChange={() => setFormData({...formData, subArea: sub})}
+                      className="w-4 h-4 accent-manzur-primary flex-shrink-0"
+                      disabled={loading}
+                    />
+                    <span className={`text-sm font-medium ${formData.subArea === sub ? 'text-manzur-primary' : 'text-gray-700'}`}>
+                      {sub}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {errors.subArea && <p className={errorCls}>{errors.subArea}</p>}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Búsquedas activas */}

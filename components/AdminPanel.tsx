@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Download, Trash2, RefreshCw, UserCheck, X, Check,
-  Calendar, Video, ArrowLeftCircle, Clock, ChevronLeft, ChevronRight,
+  Calendar, Video, ArrowLeftCircle, Clock, ChevronLeft, ChevronRight, ChevronUp,
   AlertTriangle, Trophy, ThumbsDown, RotateCcw, History,
-  Mail, FlaskConical, Brain
+  Mail, FlaskConical, Brain, FileText, Printer, ClipboardList
 } from 'lucide-react';
 import { CV } from '@/lib/types';
 
@@ -49,9 +49,9 @@ const EXAM_BADGE = {
 
 // ─── Platform config ─────────────────────────────────────────────────────────
 const PLATFORM_CONFIG = {
+  teams: { label:'Teams',       color:'bg-purple-600 hover:bg-purple-700', urlBase:'https://teams.microsoft.com/l/meeting/new', icon:'💼' },
   meet:  { label:'Google Meet', color:'bg-green-600 hover:bg-green-700',   urlBase:'https://meet.google.com/new', icon:'🎥' },
   zoom:  { label:'Zoom',        color:'bg-blue-600 hover:bg-blue-700',     urlBase:'https://zoom.us/start/videomeeting', icon:'📹' },
-  teams: { label:'Teams',       color:'bg-purple-600 hover:bg-purple-700', urlBase:'https://teams.microsoft.com/l/meeting/new', icon:'💼' },
 };
 interface MeetingData { date:string; time:string; platform:'meet'|'zoom'|'teams'; notes:string; }
 
@@ -60,7 +60,7 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [meeting, setMeeting]     = useState<MeetingData>({ date:'', time:'10:00', platform:'meet', notes:'' });
+  const [meeting, setMeeting]     = useState<MeetingData>({ date:'', time:'10:00', platform:'teams', notes:'' });
   const [scheduled, setScheduled] = useState(false);
 
   const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
@@ -74,9 +74,30 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
   const isToday = (day:number) => today.getFullYear()===viewYear&&today.getMonth()===viewMonth&&today.getDate()===day;
   const isPast  = (day:number) => { const d=new Date(viewYear,viewMonth,day);d.setHours(0,0,0,0);const t=new Date();t.setHours(0,0,0,0);return d<t; };
   const selectedDateStr = meeting.date ? new Date(meeting.date+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : null;
-  const buildUrl = () => meeting.platform!=='teams'
-    ? PLATFORM_CONFIG[meeting.platform].urlBase
-    : `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(`${label} — ${cv.nombre} ${cv.apellido} - ${cv.puestoSeleccionado||''}`)}`;
+  const buildUrl = () => {
+    const subject    = `${label} — ${cv.nombre} ${cv.apellido} - ${cv.puestoSeleccionado||''}`;
+    const bodyText   = `Tienes una Reunión`;
+
+    if (meeting.platform === 'teams') {
+      const email      = cv.email || cv.uploadedBy || '';
+      const attendees  = email ? `&attendees=${encodeURIComponent(email)}` : '';
+      // Construir startTime / endTime en formato ISO local (Teams espera YYYY-MM-DDTHH:MM:SS)
+      const startISO   = meeting.date && meeting.time ? `${meeting.date}T${meeting.time}:00` : '';
+      // Duración por defecto: 1 hora
+      const endISO     = meeting.date && meeting.time
+        ? (() => {
+            const [h, m] = meeting.time.split(':').map(Number);
+            const end = new Date(`${meeting.date}T${meeting.time}:00`);
+            end.setHours(h + 1, m);
+            return `${meeting.date}T${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}:00`;
+          })()
+        : '';
+      const timeParams = startISO ? `&startTime=${encodeURIComponent(startISO)}&endTime=${encodeURIComponent(endISO)}` : '';
+      return `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(subject)}${timeParams}&content=${encodeURIComponent(bodyText)}${attendees}`;
+    }
+
+    return PLATFORM_CONFIG[meeting.platform].urlBase;
+  };
 
   return (
     <div className="p-5 border-t border-purple-200 bg-purple-50">
@@ -159,19 +180,37 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
 
 // ─── Exam Modal ───────────────────────────────────────────────────────────────
 type ExamType = 'fisico'|'psicotecnico';
+type ExamResultado = 'Apto'|'Apto con observaciones'|'No Apto'|'';
+const RESULTADO_CONFIG: Record<Exclude<ExamResultado,''>, {bg:string;border:string;text:string;icon:string}> = {
+  'Apto':                  { bg:'bg-green-100', border:'border-green-500', text:'text-green-800',  icon:'✅' },
+  'Apto con observaciones':{ bg:'bg-yellow-100',border:'border-yellow-500',text:'text-yellow-800', icon:'⚠️' },
+  'No Apto':               { bg:'bg-red-100',   border:'border-red-500',   text:'text-red-800',    icon:'❌' },
+};
+
 const ExamModal: React.FC<{
   cv: CV;
   tipo: ExamType;
-  onConfirm: (notas:string, fecha:string) => void;
+  onConfirm: (notas:string, fecha:string, resultado:ExamResultado) => void;
   onCancel: () => void;
   onCancelarExamen: () => void;
 }> = ({ cv, tipo, onConfirm, onCancel, onCancelarExamen }) => {
-  const [notas, setNotas] = useState('');
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [fecha, setFecha] = useState(todayStr);
+  const yaAgendado   = tipo==='fisico' ? !!cv.examenFisico : !!cv.examenPsicotecnico;
+  const notasInicial = tipo==='fisico' ? (cv.examenFisicoNotas||'') : (cv.examenPsicotecnicoNotas||'');
+  const fechaInicial = tipo==='fisico'
+    ? (cv.examenFisicoFecha ? new Date(cv.examenFisicoFecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+    : (cv.examenPsicotecnicoFecha ? new Date(cv.examenPsicotecnicoFecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+  const resultadoInicial: ExamResultado = tipo==='fisico'
+    ? (cv.examenFisicoResultado||'')
+    : (cv.examenPsicotecnicoResultado||'');
+
+  const [notas,     setNotas]     = useState(notasInicial);
+  const [fecha,     setFecha]     = useState(fechaInicial);
+  const [resultado, setResultado] = useState<ExamResultado>(resultadoInicial);
+
   const cfg  = EXAM_BADGE[tipo];
   const icon = tipo==='fisico' ? <FlaskConical className="w-5 h-5"/> : <Brain className="w-5 h-5"/>;
-  const yaAgendado = tipo==='fisico' ? !!cv.examenFisico : !!cv.examenPsicotecnico;
+  const resCfg = resultado ? RESULTADO_CONFIG[resultado] : null;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
@@ -192,6 +231,29 @@ const ExamModal: React.FC<{
             <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
           </div>
+          {/* Resultado */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Resultado</label>
+            <div className="flex gap-2">
+              {(['','Apto','Apto con observaciones','No Apto'] as ExamResultado[]).map(r=>(
+                r==='' ? (
+                  <button key="none" onClick={()=>setResultado('')}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg border-2 transition-all
+                      ${resultado===''?'border-gray-400 bg-gray-100 text-gray-700':'border-gray-200 bg-white text-gray-400 hover:border-gray-300'}`}>
+                    Pendiente
+                  </button>
+                ) : (
+                  <button key={r} onClick={()=>setResultado(r)}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg border-2 transition-all
+                      ${resultado===r
+                        ? `${RESULTADO_CONFIG[r].bg} ${RESULTADO_CONFIG[r].border} ${RESULTADO_CONFIG[r].text}`
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    {RESULTADO_CONFIG[r].icon} {r}
+                  </button>
+                )
+              ))}
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas adicionales (opcional)</label>
             <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={3}
@@ -200,7 +262,7 @@ const ExamModal: React.FC<{
           </div>
         </div>
         <div className="flex gap-3 mt-5">
-          <button onClick={()=>{if(!fecha){alert('Seleccioná una fecha');return;}onConfirm(notas,fecha);}}
+          <button onClick={()=>{if(!fecha){alert('Seleccioná una fecha');return;}onConfirm(notas,fecha,resultado);}}
             className={`flex-1 py-2.5 ${cfg.bg} border-2 ${cfg.border} ${cfg.text} font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 hover:opacity-80`}>
             {icon} {yaAgendado ? 'Actualizar' : 'Confirmar solicitud'}
           </button>
@@ -266,6 +328,260 @@ const DiscardModal: React.FC<{ cv:CV; onConfirm:(m:string,n:string)=>void; onCan
   );
 };
 
+// ─── References Modal ────────────────────────────────────────────────────────
+interface ReferenciaEntry { empresa: string; contacto: string; cargo: string; telefono: string; comentario: string; }
+const emptyRef = (): ReferenciaEntry => ({ empresa:'', contacto:'', cargo:'', telefono:'', comentario:'' });
+
+const ReferencesModal: React.FC<{
+  cv: CV;
+  onSave: (texto:string) => void;
+  onClose: () => void;
+}> = ({ cv, onSave, onClose }) => {
+  const [refs, setRefs]         = useState<ReferenciaEntry[]>(() => {
+    if (cv.referenciasLaborales) {
+      try { return JSON.parse(cv.referenciasLaborales); } catch {}
+    }
+    return [emptyRef()];
+  });
+  const [mailTo, setMailTo]     = useState('');
+  const [saving, setSaving]     = useState(false);
+
+  const updateRef = (i:number, field:keyof ReferenciaEntry, val:string) =>
+    setRefs(prev => prev.map((r,idx) => idx===i ? {...r,[field]:val} : r));
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(JSON.stringify(refs));
+    setSaving(false);
+  };
+
+  const handlePrint = () => {
+    const win = window.open('','_blank','width=900,height=700');
+    if (!win) return;
+    const fechaHoy = new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+    const refsHtml = refs.map((r,i) => `
+      <div class="ref-block">
+        <div class="ref-num">Referencia ${i+1}</div>
+        <table class="ref-table">
+          <tr><td class="label">Empresa / Empleador</td><td>${r.empresa||'—'}</td></tr>
+          <tr><td class="label">Contacto</td><td>${r.contacto||'—'}</td></tr>
+          <tr><td class="label">Cargo del contacto</td><td>${r.cargo||'—'}</td></tr>
+          <tr><td class="label">Teléfono</td><td>${r.telefono||'—'}</td></tr>
+          <tr><td class="label">Comentarios</td><td>${r.comentario||'—'}</td></tr>
+        </table>
+      </div>`).join('');
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+      <title>Referencias — ${cv.nombre} ${cv.apellido}</title>
+      <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; padding:32px; font-size:13px; }
+        .header { border-bottom:3px solid #2d3a8c; padding-bottom:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-end; }
+        .header h1 { font-size:20px; color:#2d3a8c; }
+        .header .meta { font-size:11px; color:#666; text-align:right; }
+        .section { margin-bottom:18px; }
+        .section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#2d3a8c; border-bottom:1px solid #c7d2fe; padding-bottom:4px; margin-bottom:10px; }
+        .data-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 24px; }
+        .data-item { display:flex; gap:6px; }
+        .data-label { color:#555; min-width:110px; }
+        .data-value { font-weight:600; }
+        .ref-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px; margin-bottom:12px; }
+        .ref-num { font-weight:700; color:#2d3a8c; font-size:12px; margin-bottom:8px; }
+        .ref-table { width:100%; border-collapse:collapse; }
+        .ref-table td { padding:4px 6px; vertical-align:top; }
+        .ref-table .label { color:#555; width:160px; font-size:12px; }
+        .footer { margin-top:32px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:11px; color:#999; text-align:center; }
+        @media print { body { padding:20px; } }
+      </style></head><body>
+      <div class="header">
+        <div><h1>Ficha de Referencias Laborales</h1><div style="font-size:13px;color:#444;margin-top:4px;">${cv.nombre} ${cv.apellido}</div></div>
+        <div class="meta">Generado: ${fechaHoy}<br/>Manzur Administraciones</div>
+      </div>
+      <div class="section">
+        <div class="section-title">Datos del Candidato</div>
+        <div class="data-grid">
+          <div class="data-item"><span class="data-label">DNI:</span><span class="data-value">${cv.dni}</span></div>
+          <div class="data-item"><span class="data-label">Email:</span><span class="data-value">${cv.email||cv.uploadedBy||'—'}</span></div>
+          <div class="data-item"><span class="data-label">Teléfono:</span><span class="data-value">(${cv.telefonoArea}) ${cv.telefonoNumero}</span></div>
+          <div class="data-item"><span class="data-label">Nacimiento:</span><span class="data-value">${cv.fechaNacimiento}</span></div>
+          <div class="data-item"><span class="data-label">Formación:</span><span class="data-value">${cv.nivelFormacion}</span></div>
+          <div class="data-item"><span class="data-label">Residencia:</span><span class="data-value">${cv.lugarResidencia||'—'}</span></div>
+          <div class="data-item"><span class="data-label">Área:</span><span class="data-value">${cv.area||'—'}</span></div>
+          <div class="data-item"><span class="data-label">Puesto postulado:</span><span class="data-value">${cv.puestoSeleccionado||cv.subArea||'—'}</span></div>
+          ${cv.estadoSeleccion?`<div class="data-item"><span class="data-label">Estado:</span><span class="data-value">${cv.estadoSeleccion}</span></div>`:''}
+          ${cv.notasAdmin?`<div class="data-item" style="grid-column:1/-1"><span class="data-label">Notas admin:</span><span class="data-value">${cv.notasAdmin}</span></div>`:''}
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Referencias Laborales</div>
+        ${refsHtml || '<p style="color:#999;font-style:italic">Sin referencias cargadas.</p>'}
+      </div>
+      <div class="footer">Documento generado por el sistema de selección de Manzur Administraciones</div>
+    </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>win.print(), 400);
+  };
+
+  const handleMail = () => {
+    if (!mailTo.trim()) { alert('Ingresá un email de destino'); return; }
+    const subject = encodeURIComponent(`Referencias Laborales — ${cv.nombre} ${cv.apellido}`);
+    const lines: string[] = [
+      `FICHA DE REFERENCIAS LABORALES`,
+      ``,
+      `Candidato: ${cv.nombre} ${cv.apellido}`,
+      `DNI: ${cv.dni}`,
+      `Teléfono: (${cv.telefonoArea}) ${cv.telefonoNumero}`,
+      `Email: ${cv.email||cv.uploadedBy||'—'}`,
+      `Formación: ${cv.nivelFormacion}`,
+      `Residencia: ${cv.lugarResidencia||'—'}`,
+      `Área: ${cv.area||'—'}`,
+      `Puesto: ${cv.puestoSeleccionado||cv.subArea||'—'}`,
+      ``,
+      `─────────────────────────────`,
+      `REFERENCIAS LABORALES`,
+      `─────────────────────────────`,
+    ];
+    refs.forEach((r,i) => {
+      lines.push(``, `Referencia ${i+1}:`);
+      if (r.empresa)    lines.push(`  Empresa/Empleador: ${r.empresa}`);
+      if (r.contacto)   lines.push(`  Contacto:          ${r.contacto}`);
+      if (r.cargo)      lines.push(`  Cargo del contacto:${r.cargo}`);
+      if (r.telefono)   lines.push(`  Teléfono:          ${r.telefono}`);
+      if (r.comentario) lines.push(`  Comentarios:       ${r.comentario}`);
+    });
+    lines.push(``, `—`, `Manzur Administraciones`);
+    window.open(`mailto:${encodeURIComponent(mailTo)}?subject=${subject}&body=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center flex-shrink-0">
+              <ClipboardList className="w-5 h-5 text-blue-700"/>
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-lg leading-tight">Referencias Laborales</h3>
+              <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido} — {cv.puestoSeleccionado||cv.subArea||'Sin puesto asignado'}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1"><X className="w-5 h-5"/></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+
+          {/* Ficha candidato */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">Datos del Candidato</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+              <div><span className="text-gray-500">DNI:</span> <span className="font-medium">{cv.dni}</span></div>
+              <div><span className="text-gray-500">Teléfono:</span> <span className="font-medium">({cv.telefonoArea}) {cv.telefonoNumero}</span></div>
+              <div><span className="text-gray-500">Nacimiento:</span> <span className="font-medium">{cv.fechaNacimiento}</span></div>
+              <div><span className="text-gray-500">Formación:</span> <span className="font-medium">{cv.nivelFormacion}</span></div>
+              <div><span className="text-gray-500">Residencia:</span> <span className="font-medium">{cv.lugarResidencia||'—'}</span></div>
+              <div><span className="text-gray-500">Email:</span> <span className="font-medium">{cv.email||cv.uploadedBy||'—'}</span></div>
+              <div><span className="text-gray-500">Área:</span> <span className="font-medium">{cv.area||'—'}</span></div>
+              <div><span className="text-gray-500">Puesto:</span> <span className="font-medium text-blue-800">{cv.puestoSeleccionado||cv.subArea||'—'}</span></div>
+              {cv.estadoSeleccion&&<div><span className="text-gray-500">Estado:</span> <span className="font-medium">{cv.estadoSeleccion}</span></div>}
+              {cv.notasAdmin&&<div className="col-span-2"><span className="text-gray-500">Notas:</span> <span className="font-medium">{cv.notasAdmin}</span></div>}
+            </div>
+          </div>
+
+          {/* Referencias */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">Referencias Laborales</p>
+              <button onClick={()=>setRefs(r=>[...r,emptyRef()])}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-300 rounded-lg px-2.5 py-1 hover:bg-blue-50 transition-colors">
+                + Agregar referencia
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {refs.map((r,i)=>(
+                <div key={i} className="border border-gray-200 rounded-xl p-4 bg-gray-50 relative">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-gray-500 uppercase">Referencia {i+1}</span>
+                    {refs.length>1&&(
+                      <button onClick={()=>setRefs(prev=>prev.filter((_,idx)=>idx!==i))}
+                        className="text-red-400 hover:text-red-600 transition-colors">
+                        <X className="w-3.5 h-3.5"/>
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Empresa / Empleador</label>
+                      <input value={r.empresa} onChange={e=>updateRef(i,'empresa',e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombre del contacto</label>
+                      <input value={r.contacto} onChange={e=>updateRef(i,'contacto',e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Cargo del contacto</label>
+                      <input value={r.cargo} onChange={e=>updateRef(i,'cargo',e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
+                      <input value={r.telefono} onChange={e=>updateRef(i,'telefono',e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Comentarios obtenidos</label>
+                      <textarea value={r.comentario} onChange={e=>updateRef(i,'comentario',e.target.value)}
+                        rows={3} className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"/>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Enviar por mail */}
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">Enviar por email</p>
+            <div className="flex gap-2">
+              <input value={mailTo} onChange={e=>setMailTo(e.target.value)}
+                placeholder="destinatario@ejemplo.com"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              <button onClick={handleMail}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 rounded-lg transition-colors flex-shrink-0">
+                <Mail className="w-4 h-4"/>Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 flex-shrink-0 gap-3">
+          <button onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">
+            <Printer className="w-4 h-4"/>Exportar PDF
+          </button>
+          <div className="flex gap-2">
+            <button onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+              Cerrar
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50">
+              <Check className="w-4 h-4"/>{saving?'Guardando...':'Guardar referencias'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 // ─── Selection Editor (must be outside AdminPanel to avoid focus loss) ────────
 const SelectionEditor: React.FC<{
   cv: CV;
@@ -321,11 +637,13 @@ export const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab]                 = useState<TabType>('todos');
   const [selectedArea, setSelectedArea]           = useState('Todos');
   const [selectedFormacion, setSelectedFormacion] = useState('Todos');
+  const [selectedPuesto, setSelectedPuesto]       = useState('Todos');
   const [loading, setLoading]                     = useState(true);
   const [editingCV, setEditingCV]                 = useState<string|null>(null);
   const [schedulingCV, setSchedulingCV]           = useState<string|null>(null);
   const [discardingCV, setDiscardingCV]           = useState<CV|null>(null);
   const [examModal, setExamModal]                 = useState<{cv:CV; tipo:ExamType}|null>(null);
+  const [referencesCV, setReferencesCV]           = useState<CV|null>(null);
 
   const fetchCVs = async () => {
     setLoading(true);
@@ -413,16 +731,16 @@ export const AdminPanel: React.FC = () => {
   };
 
   // ── Guardar examen ────────────────────────────────────────────────────────
-  const handleSaveExam = async (cv:CV, tipo:ExamType, notas:string, fecha:string) => {
-    const field      = tipo==='fisico' ? 'examenFisico'        : 'examenPsicotecnico';
-    const fieldFecha = tipo==='fisico' ? 'examenFisicoFecha'   : 'examenPsicotecnicoFecha';
-    const fieldNotas = tipo==='fisico' ? 'examenFisicoNotas'   : 'examenPsicotecnicoNotas';
-    // fecha viene como 'YYYY-MM-DD', guardamos como ISO
+  const handleSaveExam = async (cv:CV, tipo:ExamType, notas:string, fecha:string, resultado:ExamResultado) => {
+    const field           = tipo==='fisico' ? 'examenFisico'              : 'examenPsicotecnico';
+    const fieldFecha      = tipo==='fisico' ? 'examenFisicoFecha'         : 'examenPsicotecnicoFecha';
+    const fieldNotas      = tipo==='fisico' ? 'examenFisicoNotas'         : 'examenPsicotecnicoNotas';
+    const fieldResultado  = tipo==='fisico' ? 'examenFisicoResultado'     : 'examenPsicotecnicoResultado';
     const fechaISO = fecha ? new Date(fecha+'T00:00:00').toISOString() : new Date().toISOString();
     try {
       const r=await fetch('/api/cv/update-exam',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ cvId:cv.id, [field]:true, [fieldFecha]:fechaISO, [fieldNotas]:notas }),
+        body:JSON.stringify({ cvId:cv.id, [field]:true, [fieldFecha]:fechaISO, [fieldNotas]:notas, [fieldResultado]:resultado }),
       });
       if(r.ok){setExamModal(null);fetchCVs();}
       else{const d=await r.json();alert(d.error||'Error al guardar examen');}
@@ -430,17 +748,39 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleCancelarExamen = async (cv:CV, tipo:ExamType) => {
-    const field      = tipo==='fisico' ? 'examenFisico'        : 'examenPsicotecnico';
-    const fieldFecha = tipo==='fisico' ? 'examenFisicoFecha'   : 'examenPsicotecnicoFecha';
-    const fieldNotas = tipo==='fisico' ? 'examenFisicoNotas'   : 'examenPsicotecnicoNotas';
+    const field           = tipo==='fisico' ? 'examenFisico'          : 'examenPsicotecnico';
+    const fieldFecha      = tipo==='fisico' ? 'examenFisicoFecha'     : 'examenPsicotecnicoFecha';
+    const fieldNotas      = tipo==='fisico' ? 'examenFisicoNotas'     : 'examenPsicotecnicoNotas';
+    const fieldResultado  = tipo==='fisico' ? 'examenFisicoResultado' : 'examenPsicotecnicoResultado';
     try {
       const r=await fetch('/api/cv/update-exam',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ cvId:cv.id, [field]:false, [fieldFecha]:null, [fieldNotas]:'' }),
+        body:JSON.stringify({ cvId:cv.id, [field]:false, [fieldFecha]:null, [fieldNotas]:'', [fieldResultado]:'' }),
       });
       if(r.ok){setExamModal(null);fetchCVs();}
       else{const d=await r.json();alert(d.error||'Error al cancelar examen');}
     } catch { alert('Error al cancelar examen'); }
+  };
+
+  const handleSaveReferencias = async (cvId:string, texto:string) => {
+    try {
+      const r = await fetch('/api/cv/update-selection',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ cvId, referenciasLaborales: texto }),
+      });
+      if(r.ok) fetchCVs();
+      else { const d=await r.json(); alert(d.error||'Error al guardar referencias'); }
+    } catch { alert('Error al guardar referencias'); }
+  };
+
+  const handleSetPrioridad = async (cvId:string, prioridad:number) => {
+    try {
+      await fetch('/api/cv/update-selection',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cvId, prioridadTerna: prioridad}),
+      });
+      fetchCVs();
+    } catch { alert('Error al guardar prioridad'); }
   };
 
   // ── Enviar mail ───────────────────────────────────────────────────────────
@@ -467,19 +807,36 @@ export const AdminPanel: React.FC = () => {
     return true;
   });
 
-  const allCvs      = base(cvs.filter(cv=>!cv.puestoSeleccionado&&cv.estadoSeleccion!=='Descartado'));
-  const entRRHH     = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista RRHH'));
-  const entCoord    = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista Coordinador'));
-  const terna       = base(cvs.filter(cv=>cv.estadoSeleccion==='Terna Preseleccionados'));
+  const allCvs        = base(cvs.filter(cv=>!cv.puestoSeleccionado&&cv.estadoSeleccion!=='Descartado'));
+  const entRRHH       = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista RRHH'));
+  const entCoord      = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista Coordinador'));
+  const terna         = base(cvs.filter(cv=>cv.estadoSeleccion==='Terna Preseleccionados'));
   const seleccionados = base(cvs.filter(cv=>cv.estadoSeleccion==='Seleccionado'));
-  const descartados = base(cvs.filter(cv=>cv.estadoSeleccion==='Descartado'));
+  const descartados   = base(cvs.filter(cv=>cv.estadoSeleccion==='Descartado'));
 
-  const displayCvs =
-    activeTab==='todos'          ? allCvs :
-    activeTab==='entrevistaRRHH' ? entRRHH :
-    activeTab==='entrevistaCoord'? entCoord :
-    activeTab==='terna'          ? terna :
-    activeTab==='seleccionados'  ? seleccionados : descartados;
+  // CVs de la pestaña activa antes del filtro de puesto
+  const cvsSinFiltroPuesto =
+    activeTab==='todos'           ? allCvs :
+    activeTab==='entrevistaRRHH'  ? entRRHH :
+    activeTab==='entrevistaCoord' ? entCoord :
+    activeTab==='terna'           ? terna :
+    activeTab==='seleccionados'   ? seleccionados : descartados;
+
+  // Puestos disponibles según el área seleccionada (solo en pestañas != todos)
+  const puestosDisponibles = activeTab !== 'todos'
+    ? Array.from(new Set(
+        cvsSinFiltroPuesto
+          .map(cv => cv.puestoSeleccionado || cv.subArea || '')
+          .filter(Boolean)
+      )).sort()
+    : [];
+
+  // Aplicar filtro de puesto (solo en pestañas != todos)
+  const displayCvs = activeTab !== 'todos' && selectedPuesto !== 'Todos'
+    ? cvsSinFiltroPuesto.filter(cv =>
+        (cv.puestoSeleccionado || cv.subArea || '') === selectedPuesto
+      )
+    : cvsSinFiltroPuesto;
 
   const groupedCvs = displayCvs.reduce((acc,cv)=>{
     const area=cv.area||'Genérico';
@@ -511,6 +868,8 @@ export const AdminPanel: React.FC = () => {
     const hasFisico = cv.examenFisico;
     const hasPsi    = cv.examenPsicotecnico;
     if(!hasFisico&&!hasPsi) return null;
+    const resFisicoCfg = cv.examenFisicoResultado ? RESULTADO_CONFIG[cv.examenFisicoResultado] : null;
+    const resPsiCfg    = cv.examenPsicotecnicoResultado ? RESULTADO_CONFIG[cv.examenPsicotecnicoResultado] : null;
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {hasFisico&&(
@@ -520,6 +879,11 @@ export const AdminPanel: React.FC = () => {
             {cv.examenFisicoFecha&&(
               <span className="font-normal opacity-75">· {new Date(cv.examenFisicoFecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})}</span>
             )}
+            {resFisicoCfg&&(
+              <span className={`ml-1 px-1.5 py-0.5 rounded-full border text-xs font-semibold ${resFisicoCfg.bg} ${resFisicoCfg.border} ${resFisicoCfg.text}`}>
+                {resFisicoCfg.icon} {cv.examenFisicoResultado}
+              </span>
+            )}
           </div>
         )}
         {hasPsi&&(
@@ -528,6 +892,11 @@ export const AdminPanel: React.FC = () => {
             {EXAM_BADGE.psicotecnico.label}
             {cv.examenPsicotecnicoFecha&&(
               <span className="font-normal opacity-75">· {new Date(cv.examenPsicotecnicoFecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})}</span>
+            )}
+            {resPsiCfg&&(
+              <span className={`ml-1 px-1.5 py-0.5 rounded-full border text-xs font-semibold ${resPsiCfg.bg} ${resPsiCfg.border} ${resPsiCfg.text}`}>
+                {resPsiCfg.icon} {cv.examenPsicotecnicoResultado}
+              </span>
             )}
           </div>
         )}
@@ -615,6 +984,21 @@ export const AdminPanel: React.FC = () => {
               <p className="text-xs text-green-600 mt-1">📋 Psicotécnico: {cv.examenPsicotecnicoNotas}</p>
             )}
 
+            {/* Indicador de referencias cargadas */}
+            {cv.referenciasLaborales&&(()=>{
+              try {
+                const refs: ReferenciaEntry[] = JSON.parse(cv.referenciasLaborales!);
+                const cargadas = refs.filter(r=>r.empresa||r.contacto||r.comentario);
+                if (!cargadas.length) return null;
+                return (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1.5">
+                    <FileText className="w-3.5 h-3.5 flex-shrink-0"/>
+                    <span>{cargadas.length} referencia{cargadas.length!==1?'s':''} cargada{cargadas.length!==1?'s':''}</span>
+                  </div>
+                );
+              } catch { return null; }
+            })()}
+
             {/* Historial */}
             {cv.historialEstados&&cv.historialEstados.length>0&&(
               <div className="mt-2">
@@ -646,6 +1030,17 @@ export const AdminPanel: React.FC = () => {
               className="px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
               <Download className="w-4 h-4"/>
             </button>
+
+            {/* Referencias — solo en Entrevista RRHH */}
+            {activeTab==='entrevistaRRHH'&&(
+              <button onClick={()=>setReferencesCV(cv)} title="Ficha de referencias"
+                className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium
+                  ${cv.referenciasLaborales
+                    ? 'bg-blue-100 border-blue-400 text-blue-800'
+                    : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
+                <FileText className="w-4 h-4"/>
+              </button>
+            )}
 
             {/* Agendar — ambas pestañas de entrevista */}
             {isInterviewTab&&(
@@ -712,8 +1107,8 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Quitar del proceso */}
-            {(activeTab==='entrevistaRRHH'||activeTab==='entrevistaCoord')&&(
+            {/* Quitar del proceso — todas las pestañas con proceso activo */}
+            {activeTab!=='todos'&&activeTab!=='descartados'&&(
               <button onClick={()=>handleRemoveFromSelection(cv)} title="Quitar del proceso"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
                 <ArrowLeftCircle className="w-4 h-4"/>
@@ -752,14 +1147,18 @@ export const AdminPanel: React.FC = () => {
 
       {discardingCV&&<DiscardModal cv={discardingCV} onConfirm={(m,n)=>handleDiscard(discardingCV,m,n)} onCancel={()=>setDiscardingCV(null)}/>}
       {examModal&&<ExamModal cv={examModal.cv} tipo={examModal.tipo}
-        onConfirm={(n,f)=>handleSaveExam(examModal.cv,examModal.tipo,n,f)}
+        onConfirm={(n,f,res)=>handleSaveExam(examModal.cv,examModal.tipo,n,f,res)}
         onCancel={()=>setExamModal(null)}
         onCancelarExamen={()=>handleCancelarExamen(examModal.cv,examModal.tipo)}/>}
+      {referencesCV&&<ReferencesModal
+        cv={referencesCV}
+        onSave={async(texto)=>{ await handleSaveReferencias(referencesCV.id!,texto); }}
+        onClose={()=>setReferencesCV(null)}/>}
 
       {/* Pestañas */}
       <div className="flex flex-wrap border-b-2 border-gray-200">
         {TABS.map(tab=>(
-          <button key={tab.id} onClick={()=>setActiveTab(tab.id)}
+          <button key={tab.id} onClick={()=>{ setActiveTab(tab.id); setSelectedPuesto('Todos'); }}
             className={`px-4 py-3 font-medium transition-colors text-sm whitespace-nowrap
               ${activeTab===tab.id?`border-b-2 ${tab.accent} ${tab.active}`:'text-gray-500 hover:text-gray-700'}`}>
             {tab.label}
@@ -802,22 +1201,41 @@ export const AdminPanel: React.FC = () => {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4">
+
+        {/* Área — siempre visible */}
         <div className="flex items-center gap-2">
           <label className="font-medium text-manzur-primary text-sm">Área:</label>
-          <select value={selectedArea} onChange={e=>setSelectedArea(e.target.value)}
+          <select value={selectedArea} onChange={e=>{ setSelectedArea(e.target.value); setSelectedPuesto('Todos'); }}
             className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg">
             <option value="Todos">Todas</option>
             {AREAS.map(a=><option key={a} value={a}>{a}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="font-medium text-manzur-primary text-sm">Formación:</label>
-          <select value={selectedFormacion} onChange={e=>setSelectedFormacion(e.target.value)}
-            className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg">
-            <option value="Todos">Todas</option>
-            {NIVELES_FORMACION.map(n=><option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
+
+        {/* Formación — solo en "Todos los CVs" */}
+        {activeTab==='todos' && (
+          <div className="flex items-center gap-2">
+            <label className="font-medium text-manzur-primary text-sm">Formación:</label>
+            <select value={selectedFormacion} onChange={e=>setSelectedFormacion(e.target.value)}
+              className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg">
+              <option value="Todos">Todas</option>
+              {NIVELES_FORMACION.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Puesto — solo en pestañas != todos, dependiente del área */}
+        {activeTab !== 'todos' && puestosDisponibles.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="font-medium text-manzur-primary text-sm">Puesto:</label>
+            <select value={selectedPuesto} onChange={e=>setSelectedPuesto(e.target.value)}
+              className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg max-w-[260px]">
+              <option value="Todos">Todos</option>
+              {puestosDisponibles.map(p=><option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        )}
+
         <button onClick={fetchCVs}
           className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors ml-auto">
           <RefreshCw className="w-4 h-4"/>Actualizar
@@ -828,7 +1246,7 @@ export const AdminPanel: React.FC = () => {
 
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
-      ) : Object.keys(groupedCvs).length===0 ? (
+      ) : displayCvs.length===0 ? (
         <p className="text-center text-gray-500 py-8">
           {activeTab==='todos'?'No hay CVs disponibles'
           :activeTab==='entrevistaRRHH'?'No hay candidatos en Entrevista RRHH'
@@ -837,6 +1255,87 @@ export const AdminPanel: React.FC = () => {
           :activeTab==='seleccionados'?'No hay candidatos seleccionados aún'
           :'No hay candidatos descartados'}
         </p>
+      ) : activeTab==='terna' ? (
+        // ── Terna: agrupado y ordenado por área → puesto, con prioridad ─────
+        (() => {
+          // Agrupar por área+puesto, ordenado alfabéticamente
+          const grupos: Record<string, CV[]> = {};
+          [...displayCvs]
+            .sort((a,b)=>{
+              const aKey = `${a.area||''}|${a.puestoSeleccionado||a.subArea||''}`;
+              const bKey = `${b.area||''}|${b.puestoSeleccionado||b.subArea||''}`;
+              return aKey.localeCompare(bKey,'es');
+            })
+            .forEach(cv=>{
+              const key = `${cv.area||'Sin área'} — ${cv.puestoSeleccionado||cv.subArea||'Sin puesto'}`;
+              if(!grupos[key]) grupos[key]=[];
+              grupos[key].push(cv);
+            });
+
+          return Object.entries(grupos).map(([grupKey, grupCvs])=>{
+            // Ordenar dentro del grupo por prioridad (los sin prioridad al final)
+            const ordered = [...grupCvs].sort((a,b)=>{
+              const pa = a.prioridadTerna ?? 9999;
+              const pb = b.prioridadTerna ?? 9999;
+              return pa - pb;
+            });
+            return (
+              <div key={grupKey} className="mb-8">
+                <h3 className="text-lg font-bold mb-3 pb-2 border-b-2 border-amber-300 text-amber-800 flex items-center gap-2">
+                  <Trophy className="w-4 h-4"/>
+                  {grupKey}
+                  <span className="ml-1 text-sm font-normal text-amber-600">({grupCvs.length} candidato{grupCvs.length!==1?'s':''})</span>
+                </h3>
+                <div className="space-y-3">
+                  {ordered.map((cv, idx)=>(
+                    <div key={cv.id} className="flex items-stretch gap-3">
+                      {/* Control de prioridad */}
+                      <div className="flex flex-col items-center justify-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-2 min-w-[52px]">
+                        <span className={`text-lg font-black leading-none ${cv.prioridadTerna ? 'text-amber-700' : 'text-gray-300'}`}>
+                          {cv.prioridadTerna ?? '—'}
+                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            disabled={idx===0}
+                            onClick={()=>{
+                              // Subir: intercambiar prioridades con el anterior
+                              const prev = ordered[idx-1];
+                              const myPrio  = cv.prioridadTerna  ?? idx+1;
+                              const prevPrio= prev.prioridadTerna ?? idx;
+                              handleSetPrioridad(cv.id!, prevPrio);
+                              handleSetPrioridad(prev.id!, myPrio);
+                            }}
+                            title="Subir prioridad"
+                            className="p-0.5 rounded hover:bg-amber-200 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                            <ChevronUp className="w-3.5 h-3.5 text-amber-700"/>
+                          </button>
+                          <button
+                            disabled={idx===ordered.length-1}
+                            onClick={()=>{
+                              // Bajar: intercambiar prioridades con el siguiente
+                              const next = ordered[idx+1];
+                              const myPrio   = cv.prioridadTerna  ?? idx+1;
+                              const nextPrio = next.prioridadTerna ?? idx+2;
+                              handleSetPrioridad(cv.id!, nextPrio);
+                              handleSetPrioridad(next.id!, myPrio);
+                            }}
+                            title="Bajar prioridad"
+                            className="p-0.5 rounded hover:bg-amber-200 disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                            <ChevronRight className="w-3.5 h-3.5 text-amber-700 rotate-90"/>
+                          </button>
+                        </div>
+                      </div>
+                      {/* Card normal */}
+                      <div className="flex-1 min-w-0">
+                        <CVCard cv={cv}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          });
+        })()
       ) : (
         Object.entries(groupedCvs).map(([area,areaCvs])=>(
           <div key={area} className="mb-8">
