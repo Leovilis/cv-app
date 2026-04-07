@@ -4,82 +4,28 @@ import { CVFormData, BusquedaActiva } from '@/lib/types';
 
 // ─── Áreas y sub-áreas ────────────────────────────────────────────────────────
 const AREAS_SUBAREAS: Record<string, string[]> = {
-  'Planificación Estratégica': [
-    'Coordinador Planificación Estratégica',
-    'Analista Planif. Estratégica',
-    'Analista de Costos',
-  ],
-  'Finanzas': [
-    'Coordinadora Finanzas',
-    'Tesorero',
-    'Analista de Finanzas',
-    'Administrativo Finanzas',
-  ],
-  'Contable': [
-    'Coordinador Contable',
-    'Analista Contable Bebidas',
-    'Analista Contable Servicios',
-    'Administrativo Contable Bebidas',
-    'Administrativo Contable Servicios',
-    'Administrativo Comercial',
-  ],
-  'Control de Gestión': [
-    'Analista Control de Gestión',
-  ],
-  'Impuestos': [
-    'Analista de Impuestos',
-    'Administrativo Impuestos',
-    'Administrativo de Facturación',
-  ],
-  'Auditoría Bebidas': [
-    'Coordinadora Auditoría',
-    'Auditor Interno de Bebidas',
-  ],
-  'Auditoría Producción y Servicios': [
-    'Responsable Auditoría PyS',
-    'Auditor Interno PyS',
-  ],
-  'Sistemas': [
-    'Coordinador Sistemas',
-    'Técnico Informático',
-  ],
-  'RRHH Hard': [
-    'Responsable RRHH Hard',
-    'Analista RRHH Hard',
-    'Analista Novedades RRHH Hard',
-  ],
-  'RRHH Soft': [
-    'Coordinadora RRHH Soft',
-    'Analista RRHH Soft',
-  ],
-  'Gestión de Calidad': [
-    'Coordinadora Gestión de Calidad',
-    'Analista Gestión de Calidad',
-  ],
-  'Gestión Documental': [
-    'Analista de Habilitaciones e Inocuidad Alimentaria',
-  ],
-  'RSE': [
-    'Responsable RSE',
-  ],
-  'Data Analytics': [
-    'Responsable Data Analytics',
-    'Analista de Datos',
-  ],
-  'Compras': [
-    'Responsable Compras',
-    'Administrativo de Compras',
-  ],
-  'Marketing': [
-    'Gerencia Marketing',
-    'Analista Marketing',
-  ],
-  'Maestranza': [
-    'Maestranza',
-  ],
-  'Coordinación General': [
-    'Coordinador General',
-  ],
+  'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
+  'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
+  'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
+  'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
+  'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
+  'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
+  'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
+  'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
+  'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
+  'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
+  'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
+  'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
+  'RSE':                                 ['RESPONSABLE RSE'],
+  'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
+  'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
+  'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
+  'MAESTRANZA':                          ['MAESTRANZA'],
+  'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
+  'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
+  'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
+  'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
+
 };
 
 const AREAS = Object.keys(AREAS_SUBAREAS).sort();
