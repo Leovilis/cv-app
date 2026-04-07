@@ -5,45 +5,45 @@ import {
   AlertTriangle, Trophy, ThumbsDown, RotateCcw, History,
   Mail, FlaskConical, Brain, FileText, Printer, ClipboardList
 } from 'lucide-react';
-import { CV } from '@/lib/types';
+// import { CV } from '@/lib/types';
+import { CV, AREAS_PUESTOS, AREAS, TODOS_LOS_PUESTOS, NIVELES_FORMACION, ESTADOS_SELECCION, MOTIVOS_DESCARTE } from '@/lib/types';
+// const AREAS_PUESTOS: Record<string, string[]> = {
+//   'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
+//   'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
+//   'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
+//   'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
+//   'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
+//   'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
+//   'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
+//   'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
+//   'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
+//   'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
+//   'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
+//   'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
+//   'RSE':                                 ['RESPONSABLE RSE'],
+//   'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
+//   'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
+//   'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
+//   'MAESTRANZA':                          ['MAESTRANZA'],
+//   'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
+//   'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
+//   'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
+//   'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
+// };
+// const AREAS = Object.keys(AREAS_PUESTOS).sort();
+// const TODOS_LOS_PUESTOS = Array.from(new Set(Object.values(AREAS_PUESTOS).flat())).sort();
 
-const AREAS_PUESTOS: Record<string, string[]> = {
-  'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
-  'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
-  'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
-  'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
-  'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
-  'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
-  'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
-  'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
-  'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
-  'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
-  'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
-  'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
-  'RSE':                                 ['RESPONSABLE RSE'],
-  'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
-  'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
-  'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
-  'MAESTRANZA':                          ['MAESTRANZA'],
-  'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
-  'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
-  'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
-  'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
-};
-const AREAS = Object.keys(AREAS_PUESTOS).sort();
-const TODOS_LOS_PUESTOS = Array.from(new Set(Object.values(AREAS_PUESTOS).flat())).sort();
-
-const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
-const ESTADOS_SELECCION = [
-  'En Curso','Entrevista RRHH','Entrevista Coordinador',
-  'Terna Preseleccionados','Seleccionado','Descartado','Aprobado','Rechazado','Contratado'
-];
-const MOTIVOS_DESCARTE = [
-  'Declinó la oferta a último momento','No se presentó a la entrevista', 'Perfil no se adapta',
-  'No cumple con el perfil requerido','Actitud no apta durante el proceso', 'Malas Referencias',
-  'Rechazó oferta', 'No apto EPO','No apto psicológico', 
-  'Información falsa o inconsistente','Otro motivo',
-];
+// const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
+// const ESTADOS_SELECCION = [
+//   'En Curso','Entrevista RRHH','Entrevista Coordinador',
+//   'Terna Preseleccionados','Seleccionado','Descartado','Aprobado','Rechazado','Contratado'
+// ];
+// const MOTIVOS_DESCARTE = [
+//   'Declinó la oferta a último momento','No se presentó a la entrevista', 'Perfil no se adapta',
+//   'No cumple con el perfil requerido','Actitud no apta durante el proceso', 'Malas Referencias',
+//   'Rechazó oferta', 'No apto EPO','No apto psicológico', 
+//   'Información falsa o inconsistente','Otro motivo',
+// ];
 
 type TabType = 'todos'|'entrevistaRRHH'|'entrevistaCoord'|'terna'|'seleccionados'|'descartados';
 

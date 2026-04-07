@@ -1,11 +1,8 @@
+// AdminSearchPanel.tsx - Versión actualizada
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase } from 'lucide-react';
-import { BusquedaActiva } from '@/lib/types';
-
-const AREAS = [
-  'Auditoría', 'Contable', 'Compras', 'Finanzas', 'Data Analytics',
-  'Sistemas', 'RRHH Hard y Soft', 'Calidad', 'Control Interno', 'RSE', 'Genérico'
-];
+import { BusquedaActiva, AREAS } from '@/lib/types'; // Importamos AREAS desde types.ts
 
 export const AdminSearchPanel: React.FC = () => {
   const [busquedas, setBusquedas]   = useState<BusquedaActiva[]>([]);
