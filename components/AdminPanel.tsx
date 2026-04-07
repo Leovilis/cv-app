@@ -39,8 +39,9 @@ const ESTADOS_SELECCION = [
   'Terna Preseleccionados','Seleccionado','Descartado','Aprobado','Rechazado','Contratado'
 ];
 const MOTIVOS_DESCARTE = [
-  'Declinó la oferta a último momento','No se presentó a la entrevista',
-  'No cumple con el perfil requerido','Actitud no apta durante el proceso',
+  'Declinó la oferta a último momento','No se presentó a la entrevista', 'Perfil no se adapta',
+  'No cumple con el perfil requerido','Actitud no apta durante el proceso', 'Malas Referencias',
+  'Rechazó oferta', 'No apto EPO','No apto psicológico', 
   'Información falsa o inconsistente','Otro motivo',
 ];
 
@@ -212,15 +213,74 @@ const ExamModal: React.FC<{
 
   const [notas,     setNotas]     = useState(notasInicial);
   const [fecha,     setFecha]     = useState(fechaInicial);
+  const [hora,      setHora]      = useState('08:00');
+  const [empresa,   setEmpresa]   = useState('');
+  const [direccion, setDireccion] = useState('');
   const [resultado, setResultado] = useState<ExamResultado>(resultadoInicial);
 
   const cfg  = EXAM_BADGE[tipo];
   const icon = tipo==='fisico' ? <FlaskConical className="w-5 h-5"/> : <Brain className="w-5 h-5"/>;
   const resCfg = resultado ? RESULTADO_CONFIG[resultado] : null;
 
+  // ── Formatear fecha en español para el cuerpo del mail
+  const formatFechaES = (isoDate: string) => {
+    if (!isoDate) return '';
+    const d = new Date(isoDate + 'T00:00:00');
+    return d.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  };
+
+  // ── Generar mailto con cuerpo según tipo
+  const handleEnviarMail = () => {
+    const email  = cv.email || cv.uploadedBy;
+    const nombre = `${cv.nombre} ${cv.apellido}`;
+
+    let subject = '';
+    let body    = '';
+
+    if (tipo === 'fisico') {
+      if (!fecha || !hora || !empresa || !direccion) {
+        alert('Completá fecha, hora, empresa y dirección antes de enviar el mail.');
+        return;
+      }
+      subject = 'Estudios Preocupacionales — Proceso de Selección Manzur Administraciones';
+      body =
+`Hola ${nombre},
+
+¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.
+
+En esta instancia deberás realizar los estudios preocupacionales, según el siguiente detalle:
+
+Fecha: ${formatFechaES(fecha)}
+Hora: ${hora} hs
+Lugar: ${empresa}
+Dirección: ${direccion}
+
+Por favor, presentate con DNI, en ayunas y con la primera orina de la mañana.
+Te pedimos además asistir sin acompañantes, con buena higiene personal y, en caso de usar anteojos, concurrir con los mismos.
+Es importante contar con puntualidad para esta instancia.
+Ante cualquier inconveniente o imposibilidad de asistir, te solicitamos informarlo con anticipación.
+
+Saludos,`;
+    } else {
+      subject = 'Evaluación Psicotécnica — Proceso de Selección Manzur Administraciones';
+      body =
+`Hola ${nombre},
+
+¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.
+
+La próxima instancia corresponde a la evaluación psicotécnica. En breve serás contactado/a para coordinar día, horario y lugar de realización.
+Te pedimos estar atento/a a los medios de contacto informados en tu postulación.
+
+Saludos,`;
+    }
+
+    const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, '_blank');
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 my-4">
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 rounded-full ${cfg.bg} border-2 ${cfg.border} flex items-center justify-center flex-shrink-0 ${cfg.text}`}>
             {icon}
@@ -230,7 +290,9 @@ const ExamModal: React.FC<{
             <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido} — DNI {cv.dni}</p>
           </div>
         </div>
-        <div className="space-y-3">
+
+        <div className="space-y-4">
+          {/* Fecha siempre visible */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Calendar className="w-3.5 h-3.5 inline mr-1"/>Fecha del examen *
@@ -238,6 +300,32 @@ const ExamModal: React.FC<{
             <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
           </div>
+
+          {/* Campos adicionales solo para examen físico */}
+          {tipo === 'fisico' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Clock className="w-3.5 h-3.5 inline mr-1"/>Hora *
+                </label>
+                <input type="time" value={hora} onChange={e=>setHora(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Empresa / Centro médico *</label>
+                <input type="text" value={empresa} onChange={e=>setEmpresa(e.target.value)}
+                  placeholder="Ej: Centro Médico San Martín"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección *</label>
+                <input type="text" value={direccion} onChange={e=>setDireccion(e.target.value)}
+                  placeholder="Ej: Av. Belgrano 123, San Salvador de Jujuy"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
+              </div>
+            </>
+          )}
+
           {/* Resultado */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Resultado</label>
@@ -261,22 +349,49 @@ const ExamModal: React.FC<{
               ))}
             </div>
           </div>
+
+          {/* Notas */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas adicionales (opcional)</label>
-            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={3}
+            <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2}
               placeholder={`Indicaciones para el ${cfg.label.toLowerCase()}...`}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 resize-none"/>
           </div>
+
+          {/* Preview del mail */}
+          <div className={`rounded-lg border p-3 text-xs ${cfg.bg} ${cfg.border}`}>
+            <p className={`font-semibold mb-1 flex items-center gap-1 ${cfg.text}`}>
+              <Mail className="w-3.5 h-3.5"/>Vista previa del mail
+            </p>
+            {tipo === 'fisico' ? (
+              <p className="text-gray-600 leading-relaxed">
+                Se notificará a <strong>{cv.email || cv.uploadedBy}</strong> con fecha
+                {fecha ? ` ${formatFechaES(fecha)}` : ' (sin fecha)'}, a las <strong>{hora} hs</strong>
+                {empresa ? ` en ${empresa}` : ''}{direccion ? `, ${direccion}` : ''}.
+              </p>
+            ) : (
+              <p className="text-gray-600 leading-relaxed">
+                Se notificará a <strong>{cv.email || cv.uploadedBy}</strong> que avanzó a evaluación psicotécnica y será contactado/a para coordinar.
+              </p>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3 mt-5">
+
+        {/* Botones */}
+        <div className="flex gap-2 mt-5 flex-wrap">
           <button onClick={()=>{if(!fecha){alert('Seleccioná una fecha');return;}onConfirm(notas,fecha,resultado);}}
             className={`flex-1 py-2.5 ${cfg.bg} border-2 ${cfg.border} ${cfg.text} font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 hover:opacity-80`}>
             {icon} {yaAgendado ? 'Actualizar' : 'Confirmar solicitud'}
+          </button>
+          <button onClick={handleEnviarMail}
+            className="flex-1 py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+            <Mail className="w-4 h-4"/>Enviar mail
           </button>
           <button onClick={onCancel} className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm">
             Cerrar
           </button>
         </div>
+
         {yaAgendado && (
           <button onClick={()=>{if(confirm(`¿Cancelar el ${cfg.label} de ${cv.nombre} ${cv.apellido}?`)) onCancelarExamen();}}
             className="mt-3 w-full py-2 text-red-600 border border-red-300 hover:bg-red-50 font-medium rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
