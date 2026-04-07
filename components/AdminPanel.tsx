@@ -7,30 +7,37 @@ import {
 } from 'lucide-react';
 import { CV } from '@/lib/types';
 
-const AREAS = [
-  'Auditoría','Contable','Compras','Finanzas','Data Analytics',
-  'Sistemas','RRHH Hard y Soft','Calidad','Control Interno','RSE','Genérico'
-];
+const AREAS_PUESTOS: Record<string, string[]> = {
+  'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
+  'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
+  'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
+  'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
+  'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
+  'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
+  'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
+  'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
+  'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
+  'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
+  'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
+  'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
+  'RSE':                                 ['RESPONSABLE RSE'],
+  'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
+  'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
+  'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
+  'MAESTRANZA':                          ['MAESTRANZA'],
+  'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
+  'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
+  'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
+  'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
+};
+const AREAS = Object.keys(AREAS_PUESTOS).sort();
+const TODOS_LOS_PUESTOS = Array.from(new Set(Object.values(AREAS_PUESTOS).flat())).sort();
+
 const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
 const ESTADOS_SELECCION = [
   'En Curso','Entrevista RRHH','Entrevista Coordinador',
   'Terna Preseleccionados','Seleccionado','Descartado','Aprobado','Rechazado','Contratado'
 ];
-const PUESTOS = [
-  'ADMINISTRATIVO COMERCIAL','ADMINISTRATIVO CONTABLE BEBIDAS','ADMINISTRATIVO CONTABLE SERVICIOS',
-  'ADMINISTRATIVO DE FACTURACION','ADMINISTRATIVO FINANZAS','ADMINISTRATIVO IMPUESTOS',
-  'ADMINISTRATIVO DE COMPRAS','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS',
-  'ANALISTA CONTROL DE GESTION','ANALISTA DE COSTOS','ANALISTA DE DATOS','ANALISTA DE FINANZAS',
-  'ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA','ANALISTA DE IMPUESTOS',
-  'ANALISTA GESTION DE CALIDAD','ANALISTA MARKETING','ANALISTA NOVEDADES RRHH HARD',
-  'ANALISTA PLANIF ESTRATEGICA','ANALISTA RRHH HARD','ANALISTA RRHH SOFT',
-  'AUDITOR INTERNO DE BEBIDAS','AUDITOR INTERNO PyS','COORDINADOR CONTABLE',
-  'COORDINADOR GENERAL','COORDINADOR PLANIFICACION ESTRATEGICA','COORDINADOR SISTEMAS',
-  'COORDINADOR AUDITORIA','COORDINADOR FINANZAS','COORDINADOR GESTION DE CALIDAD',
-  'COORDINADOR RRHH SOFT','GERENCIA MARKETING','MAESTRANZA','RESPONSABLE AUDITORIA PyS',
-  'RESPONSABLE COMPRAS','RESPONSABLE DATA ANALYTICS','RESPONSABLE RRHH HARD',
-  'RESPONSABLE RSE','TECNICO INFROMATICO','TESORERO'
-].sort();
 const MOTIVOS_DESCARTE = [
   'Declinó la oferta a último momento','No se presentó a la entrevista',
   'No cumple con el perfil requerido','Actitud no apta durante el proceso',
@@ -589,35 +596,104 @@ const SelectionEditor: React.FC<{
   onSave: (data:{puesto:string;estado:string;notas:string}) => void;
   onCancel: () => void;
 }> = ({ cv, availableEstados, onSave, onCancel }) => {
-  const [puesto, setPuesto] = useState(cv.puestoSeleccionado||'');
-  const [estado, setEstado] = useState(cv.estadoSeleccion||availableEstados[0]||'En Curso');
-  const [notas,  setNotas]  = useState(cv.notasAdmin||'');
+  // Puesto puede ser varios separados por coma
+  const puestosIniciales = cv.puestoSeleccionado
+    ? cv.puestoSeleccionado.split(',').map(p=>p.trim()).filter(Boolean)
+    : cv.subArea ? [cv.subArea] : [];
+
+  // Detectar área inicial buscando los puestos en AREAS_PUESTOS
+  const areaInicial = (() => {
+    for (const [area, puestos] of Object.entries(AREAS_PUESTOS)) {
+      if (puestosIniciales.some(p => puestos.includes(p))) return area;
+    }
+    return AREAS.find(a => a.toLowerCase() === cv.area?.toLowerCase()) || '';
+  })();
+
+  const [areaSelec,    setAreaSelec]    = useState(areaInicial);
+  const [puestosSelec, setPuestosSelec] = useState<string[]>(puestosIniciales);
+  const [estado,       setEstado]       = useState(cv.estadoSeleccion||availableEstados[0]||'En Curso');
+  const [notas,        setNotas]        = useState(cv.notasAdmin||'');
+
+  const puestosDeArea = areaSelec ? (AREAS_PUESTOS[areaSelec] || []) : [];
+
+  const togglePuesto = (p: string) =>
+    setPuestosSelec(prev => prev.includes(p) ? prev.filter(x=>x!==p) : [...prev, p]);
+
+  const handleAreaChange = (nuevaArea: string) => {
+    setAreaSelec(nuevaArea);
+    const validos = AREAS_PUESTOS[nuevaArea] || [];
+    setPuestosSelec(prev => prev.filter(p => validos.includes(p)));
+  };
+
   return (
     <div className="p-4 border-t border-manzur-secondary bg-gray-50">
       <h4 className="font-medium text-manzur-primary mb-3">Gestionar Proceso de Selección</h4>
       <div className="space-y-3">
+
+        {/* Área */}
         <div>
-          <label className="block text-sm font-medium mb-1">Puesto *</label>
-          <select value={puesto} onChange={e=>setPuesto(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-            <option value="">Seleccione un puesto</option>
-            {PUESTOS.map(p=><option key={p} value={p}>{p}</option>)}
+          <label className="block text-sm font-medium mb-1">Área *</label>
+          <select value={areaSelec} onChange={e=>handleAreaChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <option value="">Seleccione un área</option>
+            {AREAS.map(a=><option key={a} value={a}>{a}</option>)}
           </select>
         </div>
+
+        {/* Puestos — checkboxes multi-selección */}
+        {areaSelec && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Puesto/s *
+              {puestosSelec.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 border border-green-300 rounded-full px-2 py-0.5">
+                  {puestosSelec.length} seleccionado{puestosSelec.length!==1?'s':''}
+                </span>
+              )}
+            </label>
+            {cv.subArea && !cv.puestoSeleccionado && (
+              <p className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 mb-2">
+                📋 El candidato se postuló como: <strong>{cv.subArea}</strong>
+              </p>
+            )}
+            <div className="border border-gray-200 rounded-lg bg-white max-h-48 overflow-y-auto divide-y divide-gray-100">
+              {puestosDeArea.map(p => (
+                <label key={p} className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${puestosSelec.includes(p)?'bg-green-50':''}`}>
+                  <input type="checkbox" checked={puestosSelec.includes(p)} onChange={()=>togglePuesto(p)}
+                    className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"/>
+                  <span className={`text-sm ${puestosSelec.includes(p)?'font-semibold text-green-800':'text-gray-700'}`}>{p}</span>
+                </label>
+              ))}
+            </div>
+            {puestosSelec.length > 0 && (
+              <p className="mt-1.5 text-xs text-gray-500">
+                Seleccionados: <span className="font-medium text-gray-700">{puestosSelec.join(' · ')}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Estado */}
         <div>
           <label className="block text-sm font-medium mb-1">Estado</label>
           <select value={estado} onChange={e=>setEstado(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
             {availableEstados.map(e=><option key={e} value={e}>{e}</option>)}
           </select>
         </div>
+
+        {/* Notas */}
         <div>
           <label className="block text-sm font-medium mb-1">Notas (opcional)</label>
           <textarea value={notas} onChange={e=>setNotas(e.target.value)}
-            rows={5} className="w-full px-3 py-2 border border-gray-300 rounded-lg"/>
+            rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"/>
         </div>
+
         <div className="flex gap-2">
-          <button onClick={()=>onSave({puesto,estado,notas})}
+          <button onClick={()=>{
+              if(!puestosSelec.length){alert('Seleccioná al menos un puesto');return;}
+              onSave({puesto:puestosSelec.join(', '),estado,notas});
+            }}
             className="flex items-center gap-2 px-4 py-2 text-white rounded-lg bg-green-600 hover:bg-green-700">
             <Check className="w-4 h-4"/>Guardar
           </button>
