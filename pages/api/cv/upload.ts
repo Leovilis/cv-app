@@ -28,7 +28,7 @@ export default async function handler(
 
   try {
     const form = formidable({
-      maxFileSize: 10 * 1024 * 1024,
+      maxFileSize: 500 * 1024,
       filter: function ({ mimetype }) {
         return mimetype === 'application/pdf';
       },
