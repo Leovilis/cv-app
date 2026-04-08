@@ -1,42 +1,15 @@
+// CVUpload.tsx - Versión actualizada con modal de privacidad
+
 import React, { useState, useEffect } from 'react';
-import { Upload, User, Calendar, Briefcase, CreditCard, Phone, GraduationCap, MapPin, Search, ChevronRight } from 'lucide-react';
-import { CVFormData, BusquedaActiva } from '@/lib/types';
-
-// ─── Áreas y sub-áreas ────────────────────────────────────────────────────────
-const AREAS_SUBAREAS: Record<string, string[]> = {
-  'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
-  'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
-  'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
-  'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
-  'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
-  'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
-  'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
-  'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
-  'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
-  'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
-  'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
-  'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
-  'RSE':                                 ['RESPONSABLE RSE'],
-  'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
-  'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
-  'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
-  'MAESTRANZA':                          ['MAESTRANZA'],
-  'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
-  'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
-  'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
-  'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
-
-};
-
-const AREAS = Object.keys(AREAS_SUBAREAS).sort();
-
-const NIVELES_FORMACION = ['Secundario', 'Terciario', 'Universitario', 'Formación Superior'];
+import { Upload, User, Calendar, Briefcase, CreditCard, Phone, GraduationCap, MapPin, Search, ChevronRight, Shield } from 'lucide-react';
+import { CVFormData, BusquedaActiva, AREAS, AREAS_PUESTOS, NIVELES_FORMACION } from '@/lib/types';
+import { PrivacyModal } from './PrivacyModal';
+import { Footer } from './Footer';
 
 interface CVUploadFormProps {
   onSuccess: () => void;
 }
 
-// Extendemos el estado local para incluir subArea
 interface FormState extends CVFormData {
   subArea: string;
 }
@@ -53,8 +26,12 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   const [postulaBusqueda, setPostulaBusqueda]   = useState(false);
   const [busquedas, setBusquedas]               = useState<BusquedaActiva[]>([]);
   const [loadingBusquedas, setLoadingBusquedas] = useState(false);
+  
+  // Estado para el modal de privacidad
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [privacidadAceptada, setPrivacidadAceptada] = useState(false);
 
-  const subAreasDisponibles = formData.area ? AREAS_SUBAREAS[formData.area] || [] : [];
+  const subAreasDisponibles = formData.area ? AREAS_PUESTOS[formData.area] || [] : [];
 
   useEffect(() => {
     if (!postulaBusqueda) return;
@@ -84,6 +61,12 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
+    // Validar que se haya aceptado la privacidad
+    if (!privacidadAceptada) {
+      setShowPrivacyModal(true);
+      return;
+    }
+
     const newErrors: Partial<Record<keyof FormState, string>> = {};
     if (!formData.nombre.trim())          newErrors.nombre = 'El nombre es requerido';
     if (!formData.apellido.trim())        newErrors.apellido = 'El apellido es requerido';
@@ -116,6 +99,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       fd.append('subArea',           formData.subArea || '');
       fd.append('lugarResidencia',   formData.lugarResidencia);
       fd.append('busquedasPostuladas', JSON.stringify(formData.busquedasPostuladas));
+      fd.append('privacidadAceptada', 'true');
+      fd.append('fechaAceptacion',   new Date().toISOString());
       fd.append('cv',                formData.cv!);
 
       const response = await fetch('/api/cv/upload', { method: 'POST', body: fd });
@@ -153,6 +138,43 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
 
   return (
     <div className="space-y-5">
+      {/* Modal de Privacidad */}
+      {showPrivacyModal && (
+        <PrivacyModal
+          onAccept={() => {
+            setPrivacidadAceptada(true);
+            setShowPrivacyModal(false);
+            // Después de aceptar, mostrar mensaje de éxito y permitir envío
+            setTimeout(() => {
+              alert('✅ Gracias por aceptar nuestras políticas. Ahora puede enviar su CV.');
+            }, 100);
+          }}
+          onClose={() => setShowPrivacyModal(false)}
+        />
+      )}
+
+      {/* Indicador de privacidad */}
+      {privacidadAceptada && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 text-sm text-green-700">
+          <Shield className="w-4 h-4 flex-shrink-0"/>
+          <span>✓ Política de Privacidad y Términos aceptados</span>
+        </div>
+      )}
+
+      {!privacidadAceptada && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm text-amber-700">
+            <Shield className="w-4 h-4 flex-shrink-0"/>
+            <span>Debe aceptar la Política de Privacidad y Términos para enviar su CV</span>
+          </div>
+          <button
+            onClick={() => setShowPrivacyModal(true)}
+            className="px-3 py-1.5 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Ver y aceptar
+          </button>
+        </div>
+      )}
 
       {/* Nombre y Apellido */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -227,7 +249,6 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
 
       {/* Área + Sub-área — dos pasos encadenados */}
       <div className="border border-manzur-secondary rounded-xl overflow-hidden">
-        {/* Header del bloque */}
         <div className="px-4 py-2.5 bg-gray-50 border-b border-manzur-secondary">
           <p className="text-sm font-medium text-manzur-primary flex items-center gap-1.5">
             <Briefcase className="w-4 h-4"/>Área y Puesto *
@@ -235,7 +256,6 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         </div>
 
         <div className="p-4 space-y-3">
-          {/* Paso 1 — Área */}
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               1. Seleccioná el área
@@ -252,7 +272,6 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
             {errors.area && <p className={errorCls}>{errors.area}</p>}
           </div>
 
-          {/* Flecha visual entre pasos */}
           {formData.area && (
             <div className="flex items-center gap-2 py-1">
               <div className="flex-1 h-px bg-gray-200"/>
@@ -261,7 +280,6 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
             </div>
           )}
 
-          {/* Paso 2 — Sub-área (aparece al elegir área) */}
           {formData.area && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -330,7 +348,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
                         className="w-5 h-5 mt-0.5 accent-manzur-primary flex-shrink-0" disabled={loading}/>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900 leading-tight">{b.titulo}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{b.area} · {b.lugarResidencia}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{b.area} · {(b as any).puesto || b.titulo} · {b.lugarResidencia}</p>
                       </div>
                     </label>
                   );
@@ -365,8 +383,11 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       </div>
 
       {/* Submit */}
-      <button onClick={handleSubmit} disabled={loading}
-        className="w-full py-4 text-white font-semibold rounded-xl bg-manzur-primary hover:bg-manzur-secondary active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base shadow-md">
+      <button onClick={handleSubmit} disabled={loading || !privacidadAceptada}
+        className={`w-full py-4 text-white font-semibold rounded-xl transition-all text-base shadow-md
+          ${!privacidadAceptada 
+            ? 'bg-gray-400 cursor-not-allowed' 
+            : 'bg-manzur-primary hover:bg-manzur-secondary active:scale-[0.98]'}`}>
         {loading ? (
           <span className="flex items-center justify-center gap-2">
             <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
@@ -374,6 +395,19 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
           </span>
         ) : 'Enviar CV'}
       </button>
+
+      {/* Nota de privacidad al final */}
+      {/* {!privacidadAceptada && ( */}
+        <p className="text-xs text-center text-gray-400">
+          Al enviar su CV, acepta nuestra <button 
+            onClick={() => setShowPrivacyModal(true)}
+            className="text-manzur-primary hover:underline"
+          >Política de Privacidad</button> y 
+          <button 
+            onClick={() => setShowPrivacyModal(true)}
+            className="text-manzur-primary hover:underline"
+          > Términos y Condiciones</button>
+        </p>
     </div>
   );
 };

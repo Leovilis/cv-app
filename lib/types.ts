@@ -64,6 +64,7 @@ export interface BusquedaActiva {
   id?: string;
   titulo: string;
   area: string;
+  puesto: string;
   lugarResidencia: string;
   creadaPor: string;
   creadaAt: string;

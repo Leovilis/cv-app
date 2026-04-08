@@ -6,7 +6,7 @@ import {
   Mail, FlaskConical, Brain, FileText, Printer, ClipboardList
 } from 'lucide-react';
 // import { CV } from '@/lib/types';
-import { CV, AREAS_PUESTOS, AREAS, TODOS_LOS_PUESTOS, NIVELES_FORMACION, ESTADOS_SELECCION, MOTIVOS_DESCARTE } from '@/lib/types';
+import { CV, AREAS_PUESTOS, AREAS, NIVELES_FORMACION, ESTADOS_SELECCION, MOTIVOS_DESCARTE } from '@/lib/types';
 // const AREAS_PUESTOS: Record<string, string[]> = {
 //   'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
 //   'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],

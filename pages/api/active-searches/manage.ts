@@ -18,15 +18,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ── POST: crear búsqueda ────────────────────────────────────────────────────
   if (req.method === 'POST') {
     try {
-      const { titulo, area, lugarResidencia } = req.body;
+      const { titulo, area, puesto, lugarResidencia } = req.body;
 
-      if (!titulo?.trim() || !area?.trim() || !lugarResidencia?.trim()) {
+      if (!titulo?.trim() || !area?.trim() || !puesto?.trim || !lugarResidencia?.trim()) {
         return res.status(400).json({ error: 'Título, área y lugar de residencia son requeridos' });
       }
 
       const docRef = await db.collection('busquedas_activas').add({
         titulo:          titulo.trim(),
         area:            area.trim(),
+        puesto:          puesto.trim(),
         lugarResidencia: lugarResidencia.trim(),
         creadaPor:       session.user.email,
         creadaAt:        new Date().toISOString(),

@@ -1,15 +1,15 @@
-// AdminSearchPanel.tsx - Versión actualizada
+// AdminSearchPanel.tsx - Versión con selector de puesto
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase } from 'lucide-react';
-import { BusquedaActiva, AREAS } from '@/lib/types'; // Importamos AREAS desde types.ts
+import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase, ChevronRight } from 'lucide-react';
+import { BusquedaActiva, AREAS, AREAS_PUESTOS } from '@/lib/types';
 
 export const AdminSearchPanel: React.FC = () => {
   const [busquedas, setBusquedas]   = useState<BusquedaActiva[]>([]);
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
   const [showForm, setShowForm]     = useState(false);
-  const [form, setForm]             = useState({ titulo: '', area: '', lugarResidencia: '' });
+  const [form, setForm]             = useState({ titulo: '', area: '', puesto: '', lugarResidencia: '' });
   const [formErrors, setFormErrors] = useState<Partial<typeof form>>({});
 
   const fetchBusquedas = async () => {
@@ -31,6 +31,7 @@ export const AdminSearchPanel: React.FC = () => {
     const errors: Partial<typeof form> = {};
     if (!form.titulo.trim())          errors.titulo = 'El título es requerido';
     if (!form.area.trim())            errors.area = 'El área es requerida';
+    if (!form.puesto.trim())          errors.puesto = 'El puesto es requerido';
     if (!form.lugarResidencia.trim()) errors.lugarResidencia = 'El lugar de residencia es requerido';
     if (Object.keys(errors).length) { setFormErrors(errors); return; }
 
@@ -43,7 +44,7 @@ export const AdminSearchPanel: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setForm({ titulo: '', area: '', lugarResidencia: '' });
+        setForm({ titulo: '', area: '', puesto: '', lugarResidencia: '' });
         setFormErrors({});
         setShowForm(false);
         fetchBusquedas();
@@ -68,6 +69,8 @@ export const AdminSearchPanel: React.FC = () => {
       alert('Error al dar de baja la búsqueda');
     }
   };
+
+  const puestosDisponibles = form.area ? AREAS_PUESTOS[form.area] || [] : [];
 
   return (
     <div className="space-y-6">
@@ -121,7 +124,9 @@ export const AdminSearchPanel: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Briefcase className="inline w-3.5 h-3.5 mr-1"/>Área *
               </label>
-              <select value={form.area} onChange={e => setForm({...form, area: e.target.value})}
+              <select 
+                value={form.area} 
+                onChange={e => setForm({...form, area: e.target.value, puesto: ''})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary"
                 disabled={saving}>
                 <option value="">Seleccione un área</option>
@@ -143,8 +148,32 @@ export const AdminSearchPanel: React.FC = () => {
             </div>
           </div>
 
+          {/* Selector de puesto - aparece cuando se selecciona un área */}
+          {form.area && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Puesto específico *
+              </label>
+              {puestosDisponibles.length === 0 ? (
+                <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg p-2">
+                  No hay puestos disponibles para esta área.
+                </p>
+              ) : (
+                <select 
+                  value={form.puesto} 
+                  onChange={e => setForm({...form, puesto: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary"
+                  disabled={saving}>
+                  <option value="">Seleccione un puesto</option>
+                  {puestosDisponibles.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              )}
+              {formErrors.puesto && <p className="text-red-500 text-xs mt-1">{formErrors.puesto}</p>}
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={() => { setShowForm(false); setForm({titulo:'',area:'',lugarResidencia:''}); setFormErrors({}); }}
+            <button onClick={() => { setShowForm(false); setForm({titulo:'',area:'',puesto:'',lugarResidencia:''}); setFormErrors({}); }}
               className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               Cancelar
             </button>
@@ -157,7 +186,7 @@ export const AdminSearchPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Lista de búsquedas */}
+      {/* Lista de búsquedas - Mostrar también el puesto */}
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
       ) : busquedas.length === 0 ? (
@@ -173,10 +202,15 @@ export const AdminSearchPanel: React.FC = () => {
               className="flex items-center justify-between p-4 bg-white border border-manzur-secondary rounded-xl hover:shadow-sm transition-shadow">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{b.titulo}</p>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-500">
                   <span className="flex items-center gap-1">
                     <Briefcase className="w-3.5 h-3.5"/>{b.area}
                   </span>
+                  {(b as any).puesto && (
+                    <span className="flex items-center gap-1">
+                      <ChevronRight className="w-3.5 h-3.5"/>{b.puesto}
+                    </span>
+                  )}
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5"/>{b.lugarResidencia}
                   </span>
