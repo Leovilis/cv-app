@@ -1,4 +1,3 @@
-// pages/api/cv/update-selection.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
@@ -19,14 +18,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { cvId, puestoSeleccionado, estadoSeleccion, notasAdmin, motivoDescarte, accion } = req.body;
+    const {
+      cvId,
+      accion,
+      // Selección
+      puestoSeleccionado,
+      estadoSeleccion,
+      notasAdmin,
+      motivoDescarte,
+      // Campos parciales (no requieren puesto/estado)
+      referenciasLaborales,
+      prioridadTerna,
+      // Exámenes
+      examenFisico,        examenFisicoFecha,        examenFisicoNotas,        examenFisicoResultado,
+      examenPsicotecnico,  examenPsicotecnicoFecha,  examenPsicotecnicoNotas,  examenPsicotecnicoResultado,
+    } = req.body;
 
     if (!cvId) return res.status(400).json({ error: 'Falta el ID del CV' });
 
     const db    = getFirestore();
     const cvRef = db.collection('cvs').doc(cvId);
     const cvDoc = await cvRef.get();
-
     if (!cvDoc.exists) return res.status(404).json({ error: 'CV no encontrado' });
 
     const currentData = cvDoc.data()!;
@@ -34,32 +46,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ── REACTIVAR candidato descartado ────────────────────────────────────────
     if (accion === 'reactivar') {
       const motivoAnterior = currentData.motivoDescarte || 'Sin motivo registrado';
-      const estadoAnterior = currentData.estadoSeleccion || 'Descartado';
-
-      // Agregar al historial antes de limpiar
       const entradaHistorial = {
-        estado:  estadoAnterior,
-        fecha:   new Date().toISOString(),
-        motivo:  motivoAnterior,
-        notas:   currentData.notasAdmin || '',
+        estado: currentData.estadoSeleccion || 'Descartado',
+        fecha:  new Date().toISOString(),
+        motivo: motivoAnterior,
+        notas:  currentData.notasAdmin || '',
       };
-
       await cvRef.update({
-        // Limpiar estado actual — vuelve a "Todos los CVs"
-        puestoSeleccionado: '',
-        estadoSeleccion:    '',
-        notasAdmin:         '',
-        fechaSeleccion:     '',
-        motivoDescarte:     '',
-        // Mantener banda de advertencia visible con el motivo anterior
+        puestoSeleccionado:      '',
+        estadoSeleccion:         '',
+        notasAdmin:              '',
+        fechaSeleccion:          '',
+        motivoDescarte:          '',
         repostulacionDescartado: true,
         motivoDescarteAnterior:  motivoAnterior,
-        // Acumular en historial
-        historialEstados: FieldValue.arrayUnion(entradaHistorial),
+        historialEstados:        FieldValue.arrayUnion(entradaHistorial),
       });
-
-      console.log('✅ Candidato reactivado desde Descartados:', cvId, '| Motivo anterior:', motivoAnterior);
       return res.status(200).json({ success: true, message: 'Candidato reactivado exitosamente' });
+    }
+
+    // ── ACTUALIZACIÓN PARCIAL — campos que no requieren puesto/estado ─────────
+    // Referencias laborales
+    if (referenciasLaborales !== undefined) {
+      await cvRef.update({ referenciasLaborales });
+      return res.status(200).json({ success: true, message: 'Referencias guardadas' });
+    }
+
+    // Prioridad en terna
+    if (prioridadTerna !== undefined) {
+      await cvRef.update({ prioridadTerna });
+      return res.status(200).json({ success: true, message: 'Prioridad guardada' });
+    }
+
+    // Exámenes
+    if (examenFisico !== undefined || examenPsicotecnico !== undefined) {
+      const updateData: Record<string, any> = {};
+      if (examenFisico !== undefined) {
+        updateData.examenFisico              = examenFisico;
+        updateData.examenFisicoFecha         = examenFisicoFecha || new Date().toISOString();
+        updateData.examenFisicoNotas         = examenFisicoNotas || '';
+        updateData.examenFisicoResultado     = examenFisicoResultado || '';
+      }
+      if (examenPsicotecnico !== undefined) {
+        updateData.examenPsicotecnico        = examenPsicotecnico;
+        updateData.examenPsicotecnicoFecha   = examenPsicotecnicoFecha || new Date().toISOString();
+        updateData.examenPsicotecnicoNotas   = examenPsicotecnicoNotas || '';
+        updateData.examenPsicotecnicoResultado = examenPsicotecnicoResultado || '';
+      }
+      await cvRef.update(updateData);
+      return res.status(200).json({ success: true, message: 'Examen actualizado' });
     }
 
     // ── QUITAR del proceso (limpiar todo) ─────────────────────────────────────
@@ -77,28 +112,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         fechaSeleccion:     '',
         motivoDescarte:     '',
       });
-      console.log('✅ CV removido del proceso:', cvId);
       return res.status(200).json({ success: true, message: 'CV removido del proceso de selección' });
     }
 
-    // ── ACTUALIZAR estado ─────────────────────────────────────────────────────
+    // ── ACTUALIZAR estado de selección ────────────────────────────────────────
     const updateData: Record<string, any> = {
       puestoSeleccionado,
       estadoSeleccion,
-      notasAdmin:    notasAdmin || '',
+      notasAdmin:     notasAdmin || '',
       fechaSeleccion: new Date().toISOString(),
     };
 
     if (estadoSeleccion === 'Descartado') {
-      updateData.motivoDescarte = motivoDescarte || '';
-      // Guardar entrada en historial
-      updateData.historialEstados = FieldValue.arrayUnion({
+      updateData.motivoDescarte    = motivoDescarte || '';
+      updateData.historialEstados  = FieldValue.arrayUnion({
         estado: 'Descartado',
         fecha:  new Date().toISOString(),
         motivo: motivoDescarte || '',
         notas:  notasAdmin || '',
       });
-      console.log('🚫 Candidato descartado:', cvId, '| Motivo:', motivoDescarte);
     } else {
       updateData.motivoDescarte = '';
     }
