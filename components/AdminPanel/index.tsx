@@ -107,18 +107,33 @@ export const AdminPanel: React.FC = () => {
 
   const handleStartSelection = (cvId: string) => { setEditingCV(cvId); setSchedulingCV(null); };
 
-  const handleSaveSelection = async (cvId: string, data: { puesto: string; estado: string; notas: string }) => {
-    if (!data.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
-    try {
-      const r = await fetch('/api/cv/update-selection', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvId, puestoSeleccionado: data.puesto, estadoSeleccion: data.estado, notasAdmin: data.notas }),
-      });
-      const d = await r.json();
-      if (r.ok) { setEditingCV(null); fetchCVs(); }
-      else alert(d.error || 'Error al guardar');
-    } catch { alert('Error al guardar'); }
-  };
+ // components/AdminPanel/index.tsx - Solo la función handleSaveSelection actualizada
+
+const handleSaveSelection = async (cvId: string, data: { puesto: string; estado: string; notas: string; area?: string }) => {
+  if (!data.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
+  try {
+    const r = await fetch('/api/cv/update-selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cvId,
+        puestoSeleccionado: data.puesto,
+        estadoSeleccion: data.estado,
+        notasAdmin: data.notas,
+        areaAsignada: data.area || ''  // ← Enviar el área asignada
+      }),
+    });
+    const d = await r.json();
+    if (r.ok) {
+      setEditingCV(null);
+      fetchCVs();
+    } else {
+      alert(d.error || 'Error al guardar');
+    }
+  } catch {
+    alert('Error al guardar');
+  }
+};
 
   const handleDiscard = async (cv: CV, motivo: string, notas: string) => {
     try {

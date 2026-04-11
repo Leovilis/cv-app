@@ -9,7 +9,7 @@ export interface CVCardProps {
   schedulingCV: string | null;
   onStartSelection: (cvId: string) => void;
   onCancelSelection: () => void;
-  onSaveSelection: (cvId: string, data: { puesto: string; estado: string; notas: string }) => void;
+  onSaveSelection: (cvId: string, data: { puesto: string; estado: string; notas: string; area?: string }) => void;
   onSchedule: (cvId: string | null) => void;
   onDownload: (cv: CV) => void;
   onDelete: (cv: CV) => void;
@@ -56,7 +56,7 @@ export interface FiltersBarProps {
 export interface SelectionEditorProps {
   cv: CV;
   availableEstados: string[];
-  onSave: (data: { puesto: string; estado: string; notas: string }) => void;
+  onSave: (data: { puesto: string; estado: string; notas: string; area: string }) => void;
   onCancel: () => void;
 }
 
