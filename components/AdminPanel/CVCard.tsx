@@ -1,6 +1,4 @@
-// components/AdminPanel/CVCard.tsx - Parte de visualización del área/puesto
-// Busca la sección donde se muestra el CV y reemplaza la parte del puesto
-
+// components/AdminPanel/CVCard.tsx
 import React, { useState } from 'react';
 import {
   Download, Trash2, UserCheck, Calendar, ArrowLeftCircle, AlertTriangle,
@@ -42,9 +40,11 @@ export const CVCard: React.FC<CVCardProps> = ({
   const isRRHHTab = activeTab === 'entrevistaRRHH';
   const isAreaTecnicaTab = activeTab === 'entrevistaAreaTecnica';
 
-  // Determinar qué área mostrar (asignada por admin o la original)
   const areaMostrada = (cv as any).areaAsignada || cv.area || 'No especificada';
   const tieneAsignacionAdmin = !!(cv.puestoSeleccionado || (cv as any).areaAsignada);
+
+  // Calcular días desde carga
+  const diasDesdeCarga = Math.floor((new Date().getTime() - new Date(cv.uploadedAt).getTime()) / (1000 * 60 * 60 * 24));
 
   const badgeBg = cv.estadoSeleccion === 'Descartado' || cv.estadoSeleccion === 'Quitado del Proceso' ? 'bg-red-50 border-red-300' :
     cv.estadoSeleccion === 'Seleccionado' ? 'bg-green-50 border-green-300' :
@@ -127,14 +127,29 @@ export const CVCard: React.FC<CVCardProps> = ({
         <div className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-t-lg text-sm font-semibold">
           <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
           ATENCIÓN: Fue descartado anteriormente — {cv.motivoDescarteAnterior}
+          {(cv as any).fechaDescarteAnterior && (
+            <span className="text-xs opacity-80">
+              ({new Date((cv as any).fechaDescarteAnterior).toLocaleDateString('es-AR')})
+            </span>
+          )}
         </div>
       )}
 
       <div className="p-4 flex items-start justify-between">
         <div className="flex-1">
-          {/* Nombre y badges de puntuación */}
+          {/* Nombre y badges */}
           <div className="flex items-center gap-3 flex-wrap">
             <p className="font-semibold text-lg">{cv.nombre} {cv.apellido}</p>
+            
+            {/* Badge de antigüedad */}
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              diasDesdeCarga <= 7 ? 'bg-green-100 text-green-700' :
+              diasDesdeCarga <= 30 ? 'bg-yellow-100 text-yellow-700' :
+              'bg-gray-100 text-gray-500'
+            }`}>
+              {diasDesdeCarga === 0 ? 'Hoy' : `${diasDesdeCarga} días`}
+            </span>
+            
             {tienePuntuacionRRHH && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
                 <Trophy className="w-3 h-3"/> RRHH: {tienePuntuacionRRHH}/10
@@ -155,12 +170,72 @@ export const CVCard: React.FC<CVCardProps> = ({
             <p>Formación: {cv.nivelFormacion}</p>
             {cv.lugarResidencia && <p>📍 Residencia: {cv.lugarResidencia}</p>}
             <p>Email: {cv.email || cv.uploadedBy}</p>
-            <p>Cargado: {new Date(cv.uploadedAt).toLocaleDateString('es-AR')}</p>
           </div>
 
-          {/* ========== SECCIÓN DE ÁREA Y PUESTO ========== */}
-          
-          {/* Caso 1: Tiene asignación del admin (puesto seleccionado) */}
+          {/* Fechas importantes */}
+          <div className="mt-3 pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">📅 Fechas clave</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+              <div className="flex items-center gap-1">
+                <span>📄 Carga inicial:</span>
+                <span className="font-medium text-gray-700">{new Date(cv.uploadedAt).toLocaleDateString('es-AR')}</span>
+              </div>
+              
+              {cv.fechaSeleccion && cv.estadoSeleccion !== 'En Curso' && (
+                <div className="flex items-center gap-1">
+                  <span>🔄 Último cambio:</span>
+                  <span className="font-medium text-gray-700">{new Date(cv.fechaSeleccion).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+              
+              {(cv as any).fechaEntrevistaRRHH && (
+                <div className="flex items-center gap-1">
+                  <span>🎯 Entrevista RRHH:</span>
+                  <span className="font-medium text-blue-600">{new Date((cv as any).fechaEntrevistaRRHH).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+              
+              {(cv as any).fechaEntrevistaAreaTecnica && (
+                <div className="flex items-center gap-1">
+                  <span>🔬 Entrevista Área Técnica:</span>
+                  <span className="font-medium text-purple-600">{new Date((cv as any).fechaEntrevistaAreaTecnica).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+              
+              {cv.estadoSeleccion === 'Descartado' && cv.fechaSeleccion && (
+                <div className="flex items-center gap-1">
+                  <span>❌ Fecha de descarte:</span>
+                  <span className="font-medium text-red-600">{new Date(cv.fechaSeleccion).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+              
+              {(cv as any).fechaReactivacion && (
+                <div className="flex items-center gap-1 col-span-2">
+                  <span>🔄 Reactivado:</span>
+                  <span className="font-medium text-amber-600">{new Date((cv as any).fechaReactivacion).toLocaleDateString('es-AR')}</span>
+                  {(cv as any).motivoDescarteAnterior && (
+                    <span className="text-gray-400 ml-1">(previo: {(cv as any).motivoDescarteAnterior})</span>
+                  )}
+                </div>
+              )}
+              
+              {cv.examenFisicoFecha && (
+                <div className="flex items-center gap-1">
+                  <span>💪 Examen físico:</span>
+                  <span className="font-medium text-blue-600">{new Date(cv.examenFisicoFecha).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+              
+              {cv.examenPsicotecnicoFecha && (
+                <div className="flex items-center gap-1">
+                  <span>🧠 Examen psicotécnico:</span>
+                  <span className="font-medium text-green-600">{new Date(cv.examenPsicotecnicoFecha).toLocaleDateString('es-AR')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Área y Puesto asignado por el admin */}
           {cv.puestoSeleccionado && (
             <div className="mt-3 p-3 rounded-lg border border-green-500 bg-green-50">
               <div className="flex items-center gap-2 mb-2">
@@ -196,7 +271,7 @@ export const CVCard: React.FC<CVCardProps> = ({
             </div>
           )}
 
-          {/* Caso 2: No tiene puesto asignado pero tiene área original */}
+          {/* Área original del postulante (si no tiene asignación) */}
           {!cv.puestoSeleccionado && cv.area && (
             <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
               <div className="flex items-center gap-2 mb-1">
@@ -206,9 +281,6 @@ export const CVCard: React.FC<CVCardProps> = ({
                 </span>
               </div>
               <p className="text-base font-medium text-gray-800">{cv.area}</p>
-              {cv.subArea && (
-                <p className="text-sm text-gray-500 mt-1">Puesto sugerido: {cv.subArea}</p>
-              )}
             </div>
           )}
 
@@ -234,7 +306,7 @@ export const CVCard: React.FC<CVCardProps> = ({
                 {showHistory ? 'Ocultar historial' : `Ver historial (${cv.historialEstados.length})`}
               </button>
               {showHistory && (
-                <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-gray-200">
+                <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-gray-200 max-h-40 overflow-y-auto">
                   {cv.historialEstados.map((h, i) => (
                     <div key={i} className="text-xs text-gray-500">
                       <span className="font-medium text-gray-700">{h.estado}</span>

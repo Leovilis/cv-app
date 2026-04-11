@@ -5,10 +5,8 @@ import { AREAS, AREAS_PUESTOS } from '@/lib/types';
 import { SelectionEditorProps } from './types';
 
 export const SelectionEditor: React.FC<SelectionEditorProps> = ({ cv, availableEstados, onSave, onCancel }) => {
-  // Usar el área asignada si existe, o la del postulante, o vacío
   const areaInicial = (cv as any).areaAsignada || cv.area || '';
   
-  // Detectar puestos iniciales
   const puestosIniciales = cv.puestoSeleccionado
     ? cv.puestoSeleccionado.split(',').map(p => p.trim()).filter(Boolean)
     : [];

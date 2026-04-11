@@ -109,6 +109,8 @@ export const AdminPanel: React.FC = () => {
 
  // components/AdminPanel/index.tsx - Solo la función handleSaveSelection actualizada
 
+// components/AdminPanel/index.tsx - Solo la función handleSaveSelection actualizada
+
 const handleSaveSelection = async (cvId: string, data: { puesto: string; estado: string; notas: string; area?: string }) => {
   if (!data.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
   try {
@@ -120,7 +122,7 @@ const handleSaveSelection = async (cvId: string, data: { puesto: string; estado:
         puestoSeleccionado: data.puesto,
         estadoSeleccion: data.estado,
         notasAdmin: data.notas,
-        areaAsignada: data.area || ''  // ← Enviar el área asignada
+        areaAsignada: data.area || ''
       }),
     });
     const d = await r.json();

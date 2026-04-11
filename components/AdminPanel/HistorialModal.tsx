@@ -5,10 +5,8 @@ import { HistorialModalProps } from './types';
 import { EXAM_BADGE, RESULTADO_CONFIG } from '@/lib/constants';
 
 export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) => {
-  // Obtener historial de estados
   const historial = cv.historialEstados || [];
   
-  // Datos de exámenes
   const examenFisico = cv.examenFisico ? {
     fecha: cv.examenFisicoFecha,
     resultado: cv.examenFisicoResultado,
@@ -21,7 +19,6 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
     notas: cv.examenPsicotecnicoNotas
   } : null;
   
-  // Puntuaciones
   const puntuacionRRHH = (cv as any).puntuacionRRHH;
   const puntuacionAreaTecnica = (cv as any).puntuacionAreaTecnica;
   const fechaEntrevistaRRHH = (cv as any).fechaEntrevistaRRHH;
@@ -35,29 +32,28 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
       'Terna Preseleccionados': { icon: '⭐', label: 'Terna Preseleccionados', color: 'text-amber-600' },
       'Seleccionado': { icon: '✅', label: 'Seleccionado', color: 'text-green-600' },
       'Descartado': { icon: '❌', label: 'Descartado / No Apto', color: 'text-red-600' },
-      'Quitado del Proceso': { icon: '🚫', label: 'Quitado del Proceso', color: 'text-orange-600' }
+      'Quitado del Proceso': { icon: '🚫', label: 'Quitado del Proceso', color: 'text-orange-600' },
+      'Reactivado': { icon: '🔄', label: 'Reactivado', color: 'text-amber-600' }
     };
     return labels[estado] || { icon: '📌', label: estado, color: 'text-gray-600' };
   };
 
-  // Ordenar historial por fecha descendente (más reciente primero)
   const historialOrdenado = [...historial].sort((a, b) => 
     new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
   );
 
-  // Formatear fecha
-  const formatFecha = (fecha: string | undefined) => {
+  const formatFechaCompleta = (fecha: string | undefined) => {
     if (!fecha) return 'No registrada';
     return new Date(fecha).toLocaleString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
-  // Formatear fecha solo día
   const formatFechaDia = (fecha: string | undefined) => {
     if (!fecha) return 'No registrada';
     return new Date(fecha).toLocaleDateString('es-AR', {
@@ -90,7 +86,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
 
         <div className="overflow-y-auto flex-1 p-6 space-y-6">
           
-          {/* ==================== DATOS ACTUALES ==================== */}
+          {/* Datos actuales */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
             <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4"/>
@@ -109,22 +105,18 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                   <span className="ml-2 font-medium text-gray-800">{cv.puestoSeleccionado}</span>
                 </div>
               )}
-              {cv.area && (
-                <div>
-                  <span className="text-gray-500">Área:</span>
-                  <span className="ml-2 text-gray-700">{cv.area}</span>
-                </div>
-              )}
-              {cv.nivelFormacion && (
-                <div>
-                  <span className="text-gray-500">Formación:</span>
-                  <span className="ml-2 text-gray-700">{cv.nivelFormacion}</span>
-                </div>
-              )}
+              <div>
+                <span className="text-gray-500">Área:</span>
+                <span className="ml-2 text-gray-700">{(cv as any).areaAsignada || cv.area || 'No especificada'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Formación:</span>
+                <span className="ml-2 text-gray-700">{cv.nivelFormacion}</span>
+              </div>
             </div>
           </div>
 
-          {/* ==================== PUNTUACIONES ==================== */}
+          {/* Puntuaciones */}
           {(puntuacionRRHH || puntuacionAreaTecnica) && (
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
               <h4 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
@@ -133,7 +125,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
               </h4>
               <div className="space-y-2">
                 {puntuacionRRHH && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-sm text-gray-700">Entrevista RRHH:</span>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
@@ -149,7 +141,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                   </div>
                 )}
                 {puntuacionAreaTecnica && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-sm text-gray-700">Entrevista Área Técnica:</span>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
@@ -168,7 +160,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
             </div>
           )}
 
-          {/* ==================== EXÁMENES ==================== */}
+          {/* Exámenes */}
           {(examenFisico || examenPsicotecnico) && (
             <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
               <h4 className="font-semibold text-teal-800 mb-3 flex items-center gap-2">
@@ -212,7 +204,7 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
             </div>
           )}
 
-          {/* ==================== HISTORIAL DE INSTANCIAS ==================== */}
+          {/* Línea de tiempo */}
           <div>
             <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <History className="w-4 h-4"/>
@@ -229,24 +221,27 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                   
                   return (
                     <div key={idx} className="relative">
-                      {/* Marcador temporal */}
                       <div className={`absolute -left-[29px] top-0 w-4 h-4 rounded-full border-2 border-white 
-                        ${esDescartado ? 'bg-red-500' : 'bg-blue-500'}`}>
+                        ${esDescartado ? 'bg-red-500' : item.estado === 'Reactivado' ? 'bg-amber-500' : 'bg-blue-500'}`}>
                       </div>
                       
-                      <div className={`rounded-lg p-4 ${esDescartado ? 'bg-red-50' : 'bg-gray-50'}`}>
-                        {/* Cabecera */}
+                      <div className={`rounded-lg p-4 ${
+                        esDescartado ? 'bg-red-50' : 
+                        item.estado === 'Reactivado' ? 'bg-amber-50' : 
+                        'bg-gray-50'
+                      }`}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                           <div className="flex items-center gap-2">
                             <span className={`text-lg ${instancia.color}`}>{instancia.icon}</span>
                             <span className={`font-semibold ${instancia.color}`}>{instancia.label}</span>
                           </div>
-                          <span className="text-xs text-gray-400">
-                            {formatFecha(item.fecha)}
-                          </span>
+                          <div className="text-right">
+                            <span className="text-xs text-gray-400 block">
+                              {formatFechaCompleta(item.fecha)}
+                            </span>
+                          </div>
                         </div>
                         
-                        {/* Motivo (si es descarte o quitado) */}
                         {item.motivo && (
                           <div className="mb-3 p-2 bg-red-100 rounded-lg border border-red-200">
                             <div className="flex items-start gap-2">
@@ -259,7 +254,6 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                           </div>
                         )}
                         
-                        {/* Observaciones */}
                         {item.notas && (
                           <div className="mt-2 p-2 bg-white rounded border border-gray-200">
                             <span className="text-xs text-gray-500 block mb-1">Observaciones:</span>
@@ -267,9 +261,8 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                           </div>
                         )}
                         
-                        {/* Realizado por */}
                         <div className="mt-2 text-xs text-gray-400">
-                          Realizado por: {(item as any).realizadoPor || 'Sistema'}
+                          Realizado por: {item.realizadoPor || 'Sistema'}
                         </div>
                       </div>
                     </div>
