@@ -1,3 +1,4 @@
+// pages/api/cv/update-selection.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
@@ -51,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         fecha:  new Date().toISOString(),
         motivo: motivoAnterior,
         notas:  currentData.notasAdmin || '',
+        realizadoPor: session.user.email,
       };
       await cvRef.update({
         puestoSeleccionado:      '',
@@ -105,12 +107,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (isClearing) {
+      // Guardar en historial que se quitó del proceso
+      const entradaHistorial = {
+        estado: 'Quitado del Proceso',
+        fecha: new Date().toISOString(),
+        motivo: 'Eliminado del proceso de selección',
+        notas: notasAdmin || '',
+        realizadoPor: session.user.email,
+      };
+      
       await cvRef.update({
         puestoSeleccionado: '',
-        estadoSeleccion:    '',
-        notasAdmin:         '',
-        fechaSeleccion:     '',
-        motivoDescarte:     '',
+        estadoSeleccion:    'Quitado del Proceso',
+        notasAdmin:         notasAdmin || '',
+        fechaSeleccion:     new Date().toISOString(),
+        motivoDescarte:     'Eliminado del proceso de selección',
+        historialEstados:   FieldValue.arrayUnion(entradaHistorial),
       });
       return res.status(200).json({ success: true, message: 'CV removido del proceso de selección' });
     }
@@ -123,18 +135,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fechaSeleccion: new Date().toISOString(),
     };
 
+    // Guardar en historial el cambio de estado
+    const entradaHistorial: any = {
+      estado: estadoSeleccion,
+      fecha:  new Date().toISOString(),
+      notas:  notasAdmin || '',
+      realizadoPor: session.user.email,
+    };
+
     if (estadoSeleccion === 'Descartado') {
-      updateData.motivoDescarte    = motivoDescarte || '';
-      updateData.historialEstados  = FieldValue.arrayUnion({
-        estado: 'Descartado',
-        fecha:  new Date().toISOString(),
-        motivo: motivoDescarte || '',
-        notas:  notasAdmin || '',
-      });
+      updateData.motivoDescarte = motivoDescarte || '';
+      entradaHistorial.motivo = motivoDescarte || '';
     } else {
       updateData.motivoDescarte = '';
     }
 
+    updateData.historialEstados = FieldValue.arrayUnion(entradaHistorial);
     await cvRef.update(updateData);
 
     console.log('✅ Selección actualizada:', cvId, '→', estadoSeleccion);

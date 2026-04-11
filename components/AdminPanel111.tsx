@@ -1,66 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// components/AdminPanel.tsx - COMPLETO CON TODOS LOS CAMBIOS
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Download, Trash2, RefreshCw, UserCheck, X, Check,
   Calendar, Video, ArrowLeftCircle, Clock, ChevronLeft, ChevronRight, ChevronUp,
   AlertTriangle, Trophy, ThumbsDown, RotateCcw, History,
   Mail, FlaskConical, Brain, FileText, Printer, ClipboardList
 } from 'lucide-react';
-// import { CV } from '@/lib/types';
-import { CV, AREAS_PUESTOS, AREAS, NIVELES_FORMACION, ESTADOS_SELECCION, MOTIVOS_DESCARTE } from '@/lib/types';
-// const AREAS_PUESTOS: Record<string, string[]> = {
-//   'PLANIFICACION ESTRATEGICA':           ['COORDINADOR PLANIFICACION ESTRATEGICA','ANALISTA PLANIF ESTRATEGICA','ANALISTA DE COSTOS'],
-//   'FINANZAS':                            ['COORDINADORA FINANZAS','TESORERO','ANALISTA DE FINANZAS','ADM FINANZAS'],
-//   'CONTABLE':                            ['COORDINADOR CONTABLE','ANALISTA CONTABLE BEBIDAS','ANALISTA CONTABLE SERVICIOS','ADM CONTABLE BEBIDAS','ADM CONTABLE SERVICIOS','ADM COMERCIAL'],
-//   'CONTROL DE GESTION':                  ['ANALISTA CONTROL DE GESTION'],
-//   'IMPUESTOS':                           ['ANALISTA DE IMPUESTOS','ADM IMPUESTOS','ADM DE FACTURACION'],
-//   'AUDITORIA BEBIDAS':                   ['COORDINADORA AUDITORIA','AUDITOR INTERNO DE BEBIDAS'],
-//   'AUDITORIA PRODUCCION Y SERVICIOS':    ['RESPONSABLE AUDITORIA PyS','AUDITOR INTERNO PyS'],
-//   'SISTEMAS':                            ['COORDINADOR SISTEMAS','TECNICO INFROMATICO'],
-//   'RRHH HARD':                           ['RESPONSABLE RRHH HARD','ANALISTA RRHH HARD','ANALISTA NOVEDADES RRHH HARD'],
-//   'RRHH SOFT':                           ['COORDINADORA RRHH SOFT','ANALISTA RRHH SOFT'],
-//   'GESTION DE CALIDAD':                  ['COORDINADORA GESTION DE CALIDAD','ANALISTA GESTION DE CALIDAD'],
-//   'GESTION DOCUMENTAL':                  ['ANALISTA DE HABILITACIONES E INOCUIDAD ALIMENTARIA'],
-//   'RSE':                                 ['RESPONSABLE RSE'],
-//   'DATA ANALYTICS':                      ['RESPONSABLE DATA ANALYTICS','ANALISTA DE DATOS'],
-//   'COMPRAS':                             ['RESPONSABLE COMPRAS','ADMINISTRATIVO DE COMPRAS'],
-//   'MARKETING':                           ['GERENCIA MARKETING','ANALISTA MARKETING'],
-//   'MAESTRANZA':                          ['MAESTRANZA'],
-//   'COORDINACION GENERAL':                ['COORDINADOR GENERAL'],
-//   'DISTRIBUIDORA':                       ['PREVENTISTA','MERCHANDASING','REPOSITOR','SUPERVISOR DE VENTAS','CHOFER DE REPARTO','AYUDANTE DE REPARTO','ENCARGADO DE DEPOSITO','AYUDANTE DE DEPOSITO','CAJERO','JEFE DE SUCURSAL'],
-//   'HOTELERIA, GASTRONOMIA Y TURISMO':    ['MOZO/A','COCINERO','AYUDANTE DE COCINA','PANADERO/PASTELERO','RECEPCIONISTA','MUCAMO/A','MANTENIMIENTO','JARDINERO','MASAJISTA','ADMINISTRATIVO DE HOTEL','JEFE DE OPERACIONES HOTELERAS','ENCARGADO DE COMPRAS','SOMMELIER','EJECUTIVO DE ENOTURISMO','ENOLOGO','OBRERO DE VIÑEDOS','SERENO DE HOTEL'],
-//   'INDUSTRIA LACTEA':                    ['RESPONSABLE DE PLANTA','ADMINISTRATIVO DE PLANTA','OPERARIO DE ENVASADO','OPERARIO DE ETIQUETADO','OPERARIO DE FRACCIONADO','OPERARIO DE PRODUCCION','RESPONSABLE DE ALIMENTACION','RESPONSABLE DE CRIANZA','AYUDANTE DE CRIANZA','RESPONSABLE DE ORDEÑE','AYUDANTE DE ORDEÑE','SERENO DE TAMBO','AUXILIARES DE PRODUCCION','RESPONSABLE DE PRODUCCION','SUB RESPONSABLE DE PRODUCCION'],
-// };
-// const AREAS = Object.keys(AREAS_PUESTOS).sort();
-// const TODOS_LOS_PUESTOS = Array.from(new Set(Object.values(AREAS_PUESTOS).flat())).sort();
+import { CV, AREAS_PUESTOS, AREAS, NIVELES_FORMACION, ESTADOS_SELECCION, MOTIVOS_DESCARTE, HistorialInstancia } from '@/lib/types';
 
-// const NIVELES_FORMACION = ['Secundario','Terciario','Universitario','Formación Superior'];
-// const ESTADOS_SELECCION = [
-//   'En Curso','Entrevista RRHH','Entrevista Coordinador',
-//   'Terna Preseleccionados','Seleccionado','Descartado','Aprobado','Rechazado','Contratado'
-// ];
-// const MOTIVOS_DESCARTE = [
-//   'Declinó la oferta a último momento','No se presentó a la entrevista', 'Perfil no se adapta',
-//   'No cumple con el perfil requerido','Actitud no apta durante el proceso', 'Malas Referencias',
-//   'Rechazó oferta', 'No apto EPO','No apto psicológico', 
-//   'Información falsa o inconsistente','Otro motivo',
-// ];
-
-type TabType = 'todos'|'entrevistaRRHH'|'entrevistaCoord'|'terna'|'seleccionados'|'descartados';
+// ─── Tipos ───────────────────────────────────────────────────────────────────
+type TabType = 'todos' | 'entrevistaRRHH' | 'entrevistaAreaTecnica' | 'terna' | 'seleccionados' | 'descartados';
 
 // ─── Colores exámenes ────────────────────────────────────────────────────────
-// Físico = azul, Psicotécnico = verde, Ambos = turquesa
 const EXAM_BADGE = {
-  fisico:       { bg:'bg-blue-100',    border:'border-blue-400',    text:'text-blue-800',    label:'Examen Físico' },
-  psicotecnico: { bg:'bg-green-100',   border:'border-green-400',   text:'text-green-800',   label:'Examen Psicotécnico' },
-  ambos:        { bg:'bg-teal-100',    border:'border-teal-400',    text:'text-teal-800',    label:'Físico + Psicotécnico' },
+  fisico:       { bg:'bg-blue-100', border:'border-blue-400', text:'text-blue-800', label:'Examen Físico' },
+  psicotecnico: { bg:'bg-green-100', border:'border-green-400', text:'text-green-800', label:'Examen Psicotécnico' },
+  ambos:        { bg:'bg-teal-100', border:'border-teal-400', text:'text-teal-800', label:'Físico + Psicotécnico' },
 };
 
 // ─── Platform config ─────────────────────────────────────────────────────────
 const PLATFORM_CONFIG = {
-  teams: { label:'Teams',       color:'bg-purple-600 hover:bg-purple-700', urlBase:'https://teams.microsoft.com/l/meeting/new', icon:'💼' },
-  meet:  { label:'Google Meet', color:'bg-green-600 hover:bg-green-700',   urlBase:'https://meet.google.com/new', icon:'🎥' },
-  zoom:  { label:'Zoom',        color:'bg-blue-600 hover:bg-blue-700',     urlBase:'https://zoom.us/start/videomeeting', icon:'📹' },
+  teams: { label:'Teams', color:'bg-purple-600 hover:bg-purple-700', urlBase:'https://teams.microsoft.com/l/meeting/new', icon:'💼' },
+  meet:  { label:'Google Meet', color:'bg-green-600 hover:bg-green-700', urlBase:'https://meet.google.com/new', icon:'🎥' },
+  zoom:  { label:'Zoom', color:'bg-blue-600 hover:bg-blue-700', urlBase:'https://zoom.us/start/videomeeting', icon:'📹' },
 };
+
 interface MeetingData { date:string; time:string; platform:'meet'|'zoom'|'teams'; notes:string; }
 
 // ─── Interview Scheduler (reusable) ─────────────────────────────────────────
@@ -82,6 +46,7 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
   const isToday = (day:number) => today.getFullYear()===viewYear&&today.getMonth()===viewMonth&&today.getDate()===day;
   const isPast  = (day:number) => { const d=new Date(viewYear,viewMonth,day);d.setHours(0,0,0,0);const t=new Date();t.setHours(0,0,0,0);return d<t; };
   const selectedDateStr = meeting.date ? new Date(meeting.date+'T00:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : null;
+  
   const buildUrl = () => {
     const subject    = `${label} — ${cv.nombre} ${cv.apellido} - ${cv.puestoSeleccionado||''}`;
     const bodyText   = `Tienes una Reunión`;
@@ -89,9 +54,7 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
     if (meeting.platform === 'teams') {
       const email      = cv.email || cv.uploadedBy || '';
       const attendees  = email ? `&attendees=${encodeURIComponent(email)}` : '';
-      // Construir startTime / endTime en formato ISO local (Teams espera YYYY-MM-DDTHH:MM:SS)
       const startISO   = meeting.date && meeting.time ? `${meeting.date}T${meeting.time}:00` : '';
-      // Duración por defecto: 1 hora
       const endISO     = meeting.date && meeting.time
         ? (() => {
             const [h, m] = meeting.time.split(':').map(Number);
@@ -103,7 +66,6 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
       const timeParams = startISO ? `&startTime=${encodeURIComponent(startISO)}&endTime=${encodeURIComponent(endISO)}` : '';
       return `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(subject)}${timeParams}&content=${encodeURIComponent(bodyText)}${attendees}`;
     }
-
     return PLATFORM_CONFIG[meeting.platform].urlBase;
   };
 
@@ -118,7 +80,7 @@ const InterviewScheduler: React.FC<{ cv:CV; label:string; onClose:()=>void }> = 
       {scheduled ? (
         <div className="text-center py-6">
           <div className="text-4xl mb-3">✅</div>
-          <p className="font-semibold text-purple-900">¡Reunión iniciada!</p>
+          <p className="font-semibold text-purple-900">¡Reunión agendada!</p>
           <p className="text-sm text-gray-600 mt-1">{selectedDateStr} a las {meeting.time} hs — {PLATFORM_CONFIG[meeting.platform].label}</p>
           <button onClick={()=>setScheduled(false)} className="mt-4 text-sm text-purple-700 underline">Volver al calendario</button>
         </div>
@@ -222,14 +184,12 @@ const ExamModal: React.FC<{
   const icon = tipo==='fisico' ? <FlaskConical className="w-5 h-5"/> : <Brain className="w-5 h-5"/>;
   const resCfg = resultado ? RESULTADO_CONFIG[resultado] : null;
 
-  // ── Formatear fecha en español para el cuerpo del mail
   const formatFechaES = (isoDate: string) => {
     if (!isoDate) return '';
     const d = new Date(isoDate + 'T00:00:00');
     return d.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   };
 
-  // ── Generar mailto con cuerpo según tipo
   const handleEnviarMail = () => {
     const email  = cv.email || cv.uploadedBy;
     const nombre = `${cv.nombre} ${cv.apellido}`;
@@ -243,35 +203,10 @@ const ExamModal: React.FC<{
         return;
       }
       subject = 'Estudios Preocupacionales — Proceso de Selección Manzur Administraciones';
-      body =
-`Hola ${nombre},
-
-¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.
-
-En esta instancia deberás realizar los estudios preocupacionales, según el siguiente detalle:
-
-Fecha: ${formatFechaES(fecha)}
-Hora: ${hora} hs
-Lugar: ${empresa}
-Dirección: ${direccion}
-
-Por favor, presentate con DNI, en ayunas y con la primera orina de la mañana.
-Te pedimos además asistir sin acompañantes, con buena higiene personal y, en caso de usar anteojos, concurrir con los mismos.
-Es importante contar con puntualidad para esta instancia.
-Ante cualquier inconveniente o imposibilidad de asistir, te solicitamos informarlo con anticipación.
-
-Saludos,`;
+      body = `Hola ${nombre},\n\n¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.\n\nEn esta instancia deberás realizar los estudios preocupacionales, según el siguiente detalle:\n\nFecha: ${formatFechaES(fecha)}\nHora: ${hora} hs\nLugar: ${empresa}\nDirección: ${direccion}\n\nPor favor, presentate con DNI, en ayunas y con la primera orina de la mañana.\nTe pedimos además asistir sin acompañantes, con buena higiene personal y, en caso de usar anteojos, concurrir con los mismos.\nEs importante contar con puntualidad para esta instancia.\nAnte cualquier inconveniente o imposibilidad de asistir, te solicitamos informarlo con anticipación.\n\nSaludos,`;
     } else {
       subject = 'Evaluación Psicotécnica — Proceso de Selección Manzur Administraciones';
-      body =
-`Hola ${nombre},
-
-¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.
-
-La próxima instancia corresponde a la evaluación psicotécnica. En breve serás contactado/a para coordinar día, horario y lugar de realización.
-Te pedimos estar atento/a a los medios de contacto informados en tu postulación.
-
-Saludos,`;
+      body = `Hola ${nombre},\n\n¡Felicitaciones! Queremos contarte que avanzaste a la siguiente etapa del proceso de selección.\n\nLa próxima instancia corresponde a la evaluación psicotécnica. En breve serás contactado/a para coordinar día, horario y lugar de realización.\nTe pedimos estar atento/a a los medios de contacto informados en tu postulación.\n\nSaludos,`;
     }
 
     const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -292,7 +227,6 @@ Saludos,`;
         </div>
 
         <div className="space-y-4">
-          {/* Fecha siempre visible */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <Calendar className="w-3.5 h-3.5 inline mr-1"/>Fecha del examen *
@@ -301,7 +235,6 @@ Saludos,`;
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"/>
           </div>
 
-          {/* Campos adicionales solo para examen físico */}
           {tipo === 'fisico' && (
             <>
               <div>
@@ -326,7 +259,6 @@ Saludos,`;
             </>
           )}
 
-          {/* Resultado */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Resultado</label>
             <div className="flex gap-2">
@@ -350,7 +282,6 @@ Saludos,`;
             </div>
           </div>
 
-          {/* Notas */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notas adicionales (opcional)</label>
             <textarea value={notas} onChange={e=>setNotas(e.target.value)} rows={2}
@@ -358,7 +289,6 @@ Saludos,`;
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 resize-none"/>
           </div>
 
-          {/* Preview del mail */}
           <div className={`rounded-lg border p-3 text-xs ${cfg.bg} ${cfg.border}`}>
             <p className={`font-semibold mb-1 flex items-center gap-1 ${cfg.text}`}>
               <Mail className="w-3.5 h-3.5"/>Vista previa del mail
@@ -377,7 +307,6 @@ Saludos,`;
           </div>
         </div>
 
-        {/* Botones */}
         <div className="flex gap-2 mt-5 flex-wrap">
           <button onClick={()=>{if(!fecha){alert('Seleccioná una fecha');return;}onConfirm(notas,fecha,resultado);}}
             className={`flex-1 py-2.5 ${cfg.bg} border-2 ${cfg.border} ${cfg.text} font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 hover:opacity-80`}>
@@ -578,8 +507,6 @@ const ReferencesModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 border-2 border-blue-400 flex items-center justify-center flex-shrink-0">
@@ -594,8 +521,6 @@ const ReferencesModal: React.FC<{
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
-
-          {/* Ficha candidato */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3">Datos del Candidato</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
@@ -612,7 +537,6 @@ const ReferencesModal: React.FC<{
             </div>
           </div>
 
-          {/* Referencias */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">Referencias Laborales</p>
@@ -666,7 +590,6 @@ const ReferencesModal: React.FC<{
             </div>
           </div>
 
-          {/* Enviar por mail */}
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">Enviar por email</p>
             <div className="flex gap-2">
@@ -681,7 +604,6 @@ const ReferencesModal: React.FC<{
           </div>
         </div>
 
-        {/* Footer actions */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 flex-shrink-0 gap-3">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">
@@ -698,25 +620,321 @@ const ReferencesModal: React.FC<{
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-// ─── Selection Editor (must be outside AdminPanel to avoid focus loss) ────────
+// ─── Ranking Modal (NUEVO) ────────────────────────────────────────────────────
+interface RankingModalProps {
+  cv: CV;
+  tipo: 'RRHH' | 'Area Tecnica';
+  onConfirm: (puntuacion: number, notas: string) => void;
+  onCancel: () => void;
+}
+
+const RankingModalComponent: React.FC<RankingModalProps> = ({ cv, tipo, onConfirm, onCancel }) => {
+  const [puntuacion, setPuntuacion] = useState<number>(5);
+  const [notas, setNotas] = useState('');
+  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+            <Trophy className="w-5 h-5 text-amber-600"/>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Ranking - {tipo}</h3>
+            <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Puntuación (1-10)
+            </label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
+                <button
+                  key={star}
+                  onClick={() => setPuntuacion(star)}
+                  onMouseEnter={() => setHoveredStar(star)}
+                  onMouseLeave={() => setHoveredStar(null)}
+                  className="text-2xl focus:outline-none transition-transform hover:scale-110"
+                >
+                  <span className={
+                    (hoveredStar !== null ? star <= hoveredStar : star <= puntuacion)
+                      ? 'text-yellow-400' 
+                      : 'text-gray-300'
+                  }>
+                    ★
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Puntuación seleccionada: <strong>{puntuacion}/10</strong>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notas / Observaciones
+            </label>
+            <textarea
+              value={notas}
+              onChange={e => setNotas(e.target.value)}
+              rows={3}
+              placeholder={`Fortalezas, áreas de mejora, impresiones de la entrevista ${tipo}...`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button
+            onClick={() => onConfirm(puntuacion, notas)}
+            className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-lg text-sm flex items-center justify-center gap-2"
+          >
+            <Trophy className="w-4 h-4"/>
+            Guardar puntuación
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Quitar del Proceso Modal (NUEVO) ────────────────────────────────────────
+const QuitarProcesoModal: React.FC<{
+  cv: CV;
+  onConfirm: (motivo: string, notas: string) => void;
+  onCancel: () => void;
+}> = ({ cv, onConfirm, onCancel }) => {
+  const [motivo, setMotivo] = useState('');
+  const [notas, setNotas] = useState('');
+  const [otroMotivo, setOtroMotivo] = useState('');
+
+  const MOTIVOS_QUITAR_PROCESO = [
+    'No cumple con el perfil requerido',
+    'Actitud no apta durante el proceso',
+    'Malas Referencias',
+    'Rechazó oferta',
+    'Declinó la oferta',
+    'No se presentó a la entrevista',
+    'Información falsa o inconsistente',
+    'Perfil sobrecalificado',
+    'Perfil insuficiente',
+    'Cambio de requisitos del puesto',
+    'Otro motivo'
+  ];
+
+  const motivoFinal = motivo === 'Otro motivo' ? otroMotivo : motivo;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+            <ArrowLeftCircle className="w-5 h-5 text-orange-600"/>
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Quitar del proceso</h3>
+            <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido}</p>
+          </div>
+        </div>
+
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm text-orange-700">
+          <AlertTriangle className="w-4 h-4 inline mr-1"/>
+          El candidato será removido del proceso de selección. Podés reactivarlo más tarde desde Descartados.
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
+            <select
+              value={motivo}
+              onChange={e => setMotivo(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="">Seleccione un motivo</option>
+              {MOTIVOS_QUITAR_PROCESO.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {motivo === 'Otro motivo' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Especificar motivo</label>
+              <input
+                type="text"
+                value={otroMotivo}
+                onChange={e => setOtroMotivo(e.target.value)}
+                placeholder="Describa el motivo..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
+            <textarea
+              value={notas}
+              onChange={e => setNotas(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-5">
+          <button
+            onClick={() => {
+              if (!motivo) { alert('Seleccioná un motivo'); return; }
+              if (motivo === 'Otro motivo' && !otroMotivo.trim()) { alert('Especificá el motivo'); return; }
+              onConfirm(motivoFinal, notas);
+            }}
+            className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg text-sm flex items-center justify-center gap-2"
+          >
+            <ArrowLeftCircle className="w-4 h-4"/>
+            Confirmar
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Historial Trazabilidad Modal (NUEVO) ────────────────────────────────────
+const HistorialModal: React.FC<{
+  cv: CV;
+  onClose: () => void;
+}> = ({ cv, onClose }) => {
+  const historial = (cv as any).historialInstancias || [];
+
+  const getInstanciaLabel = (instancia: string) => {
+    const labels: Record<string, string> = {
+      'ENTREVISTA_RRHH': '📋 Entrevista RRHH',
+      'ENTREVISTA_AREA_TECNICA': '🎯 Entrevista Área Técnica',
+      'TERNA': '⭐ Terna Preseleccionados',
+      'SELECCIONADO': '✅ Seleccionado',
+      'QUITADO_PROCESO': '🚫 Quitado del Proceso'
+    };
+    return labels[instancia] || instancia;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <History className="w-5 h-5 text-blue-600"/>
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">Trazabilidad del proceso</h3>
+              <p className="text-sm text-gray-500">{cv.nombre} {cv.apellido}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5"/>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 space-y-4">
+          {historial.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No hay registro de actividad aún</p>
+          ) : (
+            <div className="relative pl-6 border-l-2 border-gray-200 space-y-6">
+              {historial.map((item: any, idx: number) => (
+                <div key={item.id || idx} className="relative">
+                  <div className="absolute -left-[29px] top-0 w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <span className="font-semibold text-gray-800">
+                        {getInstanciaLabel(item.instancia)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(item.fecha).toLocaleString('es-AR')}
+                      </span>
+                    </div>
+                    
+                    {item.puntuacion && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm text-gray-600">Puntuación:</span>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5,6,7,8,9,10].map(s => (
+                            <span key={s} className={`text-sm ${s <= item.puntuacion ? 'text-yellow-500' : 'text-gray-300'}`}>★</span>
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 ml-1">({item.puntuacion}/10)</span>
+                      </div>
+                    )}
+                    
+                    {item.motivo && (
+                      <div className="mb-2">
+                        <span className="text-sm text-gray-600">Motivo:</span>
+                        <span className="text-sm font-medium text-red-600 ml-2">🚫 {item.motivo}</span>
+                      </div>
+                    )}
+                    
+                    {item.notas && (
+                      <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                        <span className="text-xs text-gray-500 block mb-1">Observaciones:</span>
+                        <p className="text-sm text-gray-700">{item.notas}</p>
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 text-xs text-gray-400">
+                      Realizado por: {item.realizadoPor}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end px-6 py-4 border-t border-gray-200 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Selection Editor ────────────────────────────────────────────────────────
 const SelectionEditor: React.FC<{
   cv: CV;
   availableEstados: string[];
   onSave: (data:{puesto:string;estado:string;notas:string}) => void;
   onCancel: () => void;
 }> = ({ cv, availableEstados, onSave, onCancel }) => {
-  // Puesto puede ser varios separados por coma
   const puestosIniciales = cv.puestoSeleccionado
     ? cv.puestoSeleccionado.split(',').map(p=>p.trim()).filter(Boolean)
     : cv.subArea ? [cv.subArea] : [];
 
-  // Detectar área inicial buscando los puestos en AREAS_PUESTOS
   const areaInicial = (() => {
     for (const [area, puestos] of Object.entries(AREAS_PUESTOS)) {
       if (puestosIniciales.some(p => puestos.includes(p))) return area;
@@ -744,8 +962,6 @@ const SelectionEditor: React.FC<{
     <div className="p-4 border-t border-manzur-secondary bg-gray-50">
       <h4 className="font-medium text-manzur-primary mb-3">Gestionar Proceso de Selección</h4>
       <div className="space-y-3">
-
-        {/* Área */}
         <div>
           <label className="block text-sm font-medium mb-1">Área *</label>
           <select value={areaSelec} onChange={e=>handleAreaChange(e.target.value)}
@@ -755,7 +971,6 @@ const SelectionEditor: React.FC<{
           </select>
         </div>
 
-        {/* Puestos — checkboxes multi-selección */}
         {areaSelec && (
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -788,7 +1003,6 @@ const SelectionEditor: React.FC<{
           </div>
         )}
 
-        {/* Estado */}
         <div>
           <label className="block text-sm font-medium mb-1">Estado</label>
           <select value={estado} onChange={e=>setEstado(e.target.value)}
@@ -797,7 +1011,6 @@ const SelectionEditor: React.FC<{
           </select>
         </div>
 
-        {/* Notas */}
         <div>
           <label className="block text-sm font-medium mb-1">Notas (opcional)</label>
           <textarea value={notas} onChange={e=>setNotas(e.target.value)}
@@ -824,17 +1037,21 @@ const SelectionEditor: React.FC<{
 
 // ─── Main AdminPanel ──────────────────────────────────────────────────────────
 export const AdminPanel: React.FC = () => {
-  const [cvs, setCvs]                             = useState<CV[]>([]);
-  const [activeTab, setActiveTab]                 = useState<TabType>('todos');
-  const [selectedArea, setSelectedArea]           = useState('Todos');
-  const [selectedFormacion, setSelectedFormacion] = useState('Todos');
-  const [selectedPuesto, setSelectedPuesto]       = useState('Todos');
-  const [loading, setLoading]                     = useState(true);
-  const [editingCV, setEditingCV]                 = useState<string|null>(null);
-  const [schedulingCV, setSchedulingCV]           = useState<string|null>(null);
-  const [discardingCV, setDiscardingCV]           = useState<CV|null>(null);
-  const [examModal, setExamModal]                 = useState<{cv:CV; tipo:ExamType}|null>(null);
-  const [referencesCV, setReferencesCV]           = useState<CV|null>(null);
+  const [cvs, setCvs]                                     = useState<CV[]>([]);
+  const [activeTab, setActiveTab]                         = useState<TabType>('todos');
+  const [selectedArea, setSelectedArea]                   = useState('Todos');
+  const [selectedFormacion, setSelectedFormacion]         = useState('Todos');
+  const [selectedResidencia, setSelectedResidencia]       = useState('Todos');
+  const [selectedPuesto, setSelectedPuesto]               = useState('Todos');
+  const [loading, setLoading]                             = useState(true);
+  const [editingCV, setEditingCV]                         = useState<string|null>(null);
+  const [schedulingCV, setSchedulingCV]                   = useState<string|null>(null);
+  const [discardingCV, setDiscardingCV]                   = useState<CV|null>(null);
+  const [examModal, setExamModal]                         = useState<{cv:CV; tipo:ExamType}|null>(null);
+  const [referencesCV, setReferencesCV]                   = useState<CV|null>(null);
+  const [rankingModal, setRankingModal]                   = useState<{cv:CV; tipo:'RRHH'|'Area Tecnica'}|null>(null);
+  const [quitProcesoModal, setQuitProcesoModal]           = useState<CV|null>(null);
+  const [historialModal, setHistorialModal]               = useState<CV|null>(null);
 
   const fetchCVs = async () => {
     setLoading(true);
@@ -851,6 +1068,50 @@ export const AdminPanel: React.FC = () => {
   };
 
   useEffect(()=>{ fetchCVs(); },[selectedArea,selectedFormacion]);
+
+  // ── Ranking ────────────────────────────────────────────────────────────────
+  const handleSaveRanking = async (cv: CV, tipo: 'RRHH' | 'Area Tecnica', puntuacion: number, notas: string) => {
+    try {
+      const response = await fetch('/api/cv/update-ranking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvId: cv.id, tipo, puntuacion, notas })
+      });
+      
+      if (response.ok) {
+        setRankingModal(null);
+        fetchCVs();
+        alert(`Puntuación de ${tipo} guardada correctamente`);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al guardar la puntuación');
+      }
+    } catch (error) {
+      alert('Error al guardar la puntuación');
+    }
+  };
+
+  // ── Quitar del Proceso ────────────────────────────────────────────────────
+  const handleQuitProceso = async (cv: CV, motivo: string, notas: string) => {
+    try {
+      const response = await fetch('/api/cv/quit-proceso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cvId: cv.id, motivo, notas })
+      });
+      
+      if (response.ok) {
+        setQuitProcesoModal(null);
+        fetchCVs();
+        alert('Candidato removido del proceso');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error al quitar del proceso');
+      }
+    } catch (error) {
+      alert('Error al quitar del proceso');
+    }
+  };
 
   const handleDownload = async (cv:CV) => {
     try {
@@ -921,7 +1182,6 @@ export const AdminPanel: React.FC = () => {
     } catch { alert('Error al reactivar'); }
   };
 
-  // ── Guardar examen ────────────────────────────────────────────────────────
   const handleSaveExam = async (cv:CV, tipo:ExamType, notas:string, fecha:string, resultado:ExamResultado) => {
     const field           = tipo==='fisico' ? 'examenFisico'              : 'examenPsicotecnico';
     const fieldFecha      = tipo==='fisico' ? 'examenFisicoFecha'         : 'examenPsicotecnicoFecha';
@@ -974,7 +1234,6 @@ export const AdminPanel: React.FC = () => {
     } catch { alert('Error al guardar prioridad'); }
   };
 
-  // ── Enviar mail ───────────────────────────────────────────────────────────
   const handleSendMail = (cv:CV) => {
     const email = cv.email || cv.uploadedBy;
     if(!email){alert('No hay email registrado para este candidato.');return;}
@@ -992,28 +1251,36 @@ export const AdminPanel: React.FC = () => {
   };
 
   // ── Filtros ───────────────────────────────────────────────────────────────
-  const base = (list:CV[]) => list.filter(cv=>{
-    if(selectedArea!=='Todos'&&cv.area!==selectedArea) return false;
-    if(selectedFormacion!=='Todos'&&cv.nivelFormacion!==selectedFormacion) return false;
+  const base = (list: CV[]) => list.filter(cv=>{
+    if(selectedArea!=='Todos' && cv.area!==selectedArea) return false;
+    if(selectedFormacion!=='Todos' && cv.nivelFormacion!==selectedFormacion) return false;
+    if(selectedResidencia!=='Todos' && cv.lugarResidencia!==selectedResidencia) return false;
     return true;
   });
 
-  const allCvs        = base(cvs.filter(cv=>!cv.puestoSeleccionado&&cv.estadoSeleccion!=='Descartado'));
-  const entRRHH       = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista RRHH'));
-  const entCoord      = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista Coordinador'));
-  const terna         = base(cvs.filter(cv=>cv.estadoSeleccion==='Terna Preseleccionados'));
-  const seleccionados = base(cvs.filter(cv=>cv.estadoSeleccion==='Seleccionado'));
-  const descartados   = base(cvs.filter(cv=>cv.estadoSeleccion==='Descartado'));
+  // Obtener lugares de residencia únicos para el filtro
+  const lugaresResidencia = useMemo(() => {
+    const lugares = new Set<string>();
+    cvs.forEach(cv => {
+      if (cv.lugarResidencia) lugares.add(cv.lugarResidencia);
+    });
+    return ['Todos', ...Array.from(lugares).sort()];
+  }, [cvs]);
 
-  // CVs de la pestaña activa antes del filtro de puesto
+  const allCvs              = base(cvs.filter(cv=>!cv.puestoSeleccionado && cv.estadoSeleccion!=='Descartado' && cv.estadoSeleccion!=='Quitado del Proceso'));
+  const entRRHH             = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista RRHH'));
+  const entAreaTecnica      = base(cvs.filter(cv=>cv.estadoSeleccion==='Entrevista Área Técnica'));
+  const terna               = base(cvs.filter(cv=>cv.estadoSeleccion==='Terna Preseleccionados'));
+  const seleccionados       = base(cvs.filter(cv=>cv.estadoSeleccion==='Seleccionado'));
+  const descartados         = base(cvs.filter(cv=>cv.estadoSeleccion==='Descartado' || cv.estadoSeleccion==='Quitado del Proceso'));
+
   const cvsSinFiltroPuesto =
-    activeTab==='todos'           ? allCvs :
-    activeTab==='entrevistaRRHH'  ? entRRHH :
-    activeTab==='entrevistaCoord' ? entCoord :
-    activeTab==='terna'           ? terna :
-    activeTab==='seleccionados'   ? seleccionados : descartados;
+    activeTab==='todos'               ? allCvs :
+    activeTab==='entrevistaRRHH'      ? entRRHH :
+    activeTab==='entrevistaAreaTecnica' ? entAreaTecnica :
+    activeTab==='terna'               ? terna :
+    activeTab==='seleccionados'       ? seleccionados : descartados;
 
-  // Puestos disponibles según el área seleccionada (solo en pestañas != todos)
   const puestosDisponibles = activeTab !== 'todos'
     ? Array.from(new Set(
         cvsSinFiltroPuesto
@@ -1022,7 +1289,6 @@ export const AdminPanel: React.FC = () => {
       )).sort()
     : [];
 
-  // Aplicar filtro de puesto (solo en pestañas != todos)
   const displayCvs = activeTab !== 'todos' && selectedPuesto !== 'Todos'
     ? cvsSinFiltroPuesto.filter(cv =>
         (cv.puestoSeleccionado || cv.subArea || '') === selectedPuesto
@@ -1037,20 +1303,20 @@ export const AdminPanel: React.FC = () => {
   },{} as Record<string,CV[]>);
 
   const TABS:{id:TabType;label:string;count:number;accent:string;active:string}[] = [
-    { id:'todos',           label:'Todos los CVs',           count:allCvs.length,        accent:'border-manzur-primary', active:'text-manzur-primary' },
-    { id:'entrevistaRRHH',  label:'Entrevista RRHH',         count:entRRHH.length,       accent:'border-blue-500',       active:'text-blue-600' },
-    { id:'entrevistaCoord', label:'Entrevista Coordinador',  count:entCoord.length,      accent:'border-purple-500',     active:'text-purple-600' },
-    { id:'terna',           label:'Terna Preseleccionados',  count:terna.length,         accent:'border-amber-500',      active:'text-amber-600' },
-    { id:'seleccionados',   label:'Seleccionados',           count:seleccionados.length, accent:'border-green-500',      active:'text-green-600' },
-    { id:'descartados',     label:'Descartados / No Aptos',  count:descartados.length,   accent:'border-red-500',        active:'text-red-600' },
+    { id:'todos',                  label:'Todos los CVs',                  count:allCvs.length,              accent:'border-manzur-primary', active:'text-manzur-primary' },
+    { id:'entrevistaRRHH',         label:'Entrevista RRHH',                count:entRRHH.length,             accent:'border-blue-500',       active:'text-blue-600' },
+    { id:'entrevistaAreaTecnica',  label:'Entrevista Área Técnica',        count:entAreaTecnica.length,      accent:'border-purple-500',     active:'text-purple-600' },
+    { id:'terna',                  label:'Terna Preseleccionados',         count:terna.length,               accent:'border-amber-500',      active:'text-amber-600' },
+    { id:'seleccionados',          label:'Seleccionados',                  count:seleccionados.length,       accent:'border-green-500',      active:'text-green-600' },
+    { id:'descartados',            label:'Descartados / No Aptos',         count:descartados.length,         accent:'border-red-500',        active:'text-red-600' },
   ];
 
   const getAvailableEstados = (tab:TabType) => {
-    if(tab==='todos')           return ['En Curso','Entrevista RRHH'];
-    if(tab==='entrevistaRRHH')  return ['Entrevista RRHH','Entrevista Coordinador'];
-    if(tab==='entrevistaCoord') return ['Entrevista Coordinador','Terna Preseleccionados'];
-    if(tab==='terna')           return ['Terna Preseleccionados','Seleccionado'];
-    if(tab==='seleccionados')   return ['Seleccionado'];
+    if(tab==='todos')                   return ['En Curso','Entrevista RRHH'];
+    if(tab==='entrevistaRRHH')          return ['Entrevista RRHH','Entrevista Área Técnica'];
+    if(tab==='entrevistaAreaTecnica')   return ['Entrevista Área Técnica','Terna Preseleccionados'];
+    if(tab==='terna')                   return ['Terna Preseleccionados','Seleccionado'];
+    if(tab==='seleccionados')           return ['Seleccionado'];
     return ESTADOS_SELECCION;
   };
 
@@ -1099,41 +1365,43 @@ export const AdminPanel: React.FC = () => {
   const CVCard:React.FC<{cv:CV}> = ({cv}) => {
     const isEditing    = editingCV===cv.id;
     const isScheduling = schedulingCV===cv.id;
-    const isDiscarded  = cv.estadoSeleccion==='Descartado';
+    const isDiscarded  = cv.estadoSeleccion==='Descartado' || cv.estadoSeleccion==='Quitado del Proceso';
     const [showHistory, setShowHistory] = useState(false);
 
-    const isInterviewTab = activeTab==='entrevistaRRHH'||activeTab==='entrevistaCoord';
+    const isInterviewTab = activeTab==='entrevistaRRHH'||activeTab==='entrevistaAreaTecnica';
     const isTerna        = activeTab==='terna';
 
     const badgeBg =
-      cv.estadoSeleccion==='Descartado'             ? 'bg-red-50 border-red-300' :
+      cv.estadoSeleccion==='Descartado' || cv.estadoSeleccion==='Quitado del Proceso' ? 'bg-red-50 border-red-300' :
       cv.estadoSeleccion==='Seleccionado'           ? 'bg-green-50 border-green-300' :
       cv.estadoSeleccion==='Terna Preseleccionados' ? 'bg-amber-50 border-amber-300' :
-      cv.estadoSeleccion==='Entrevista Coordinador' ? 'bg-purple-50 border-purple-300' :
+      cv.estadoSeleccion==='Entrevista Área Técnica' ? 'bg-purple-50 border-purple-300' :
       cv.estadoSeleccion==='Entrevista RRHH'        ? 'bg-blue-50 border-blue-300' :
       'bg-gray-50 border-gray-200';
 
     const badgeTxt =
-      cv.estadoSeleccion==='Descartado'             ? 'text-red-900' :
+      cv.estadoSeleccion==='Descartado' || cv.estadoSeleccion==='Quitado del Proceso' ? 'text-red-900' :
       cv.estadoSeleccion==='Seleccionado'           ? 'text-green-900' :
       cv.estadoSeleccion==='Terna Preseleccionados' ? 'text-amber-900' :
-      cv.estadoSeleccion==='Entrevista Coordinador' ? 'text-purple-900' :
+      cv.estadoSeleccion==='Entrevista Área Técnica' ? 'text-purple-900' :
       cv.estadoSeleccion==='Entrevista RRHH'        ? 'text-blue-900' : 'text-gray-900';
 
-    const schedulerLabel = activeTab==='entrevistaRRHH' ? 'Entrevista RRHH' : 'Entrevista Coordinador';
+    const schedulerLabel = activeTab==='entrevistaRRHH' ? 'Entrevista RRHH' : 'Entrevista Área Técnica';
+
+    // Verificar si ya tiene puntuación para mostrar badge
+    const tienePuntuacionRRHH = (cv as any).puntuacionRRHH;
+    const tienePuntuacionArea = (cv as any).puntuacionAreaTecnica;
 
     return (
       <div className={`border rounded-lg hover:shadow-md transition-shadow ${isDiscarded?'border-red-300 bg-red-50/30':'border-manzur-secondary'}`}>
 
-        {/* Banda roja */}
         {isDiscarded && (
           <div className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-t-lg text-sm font-semibold">
             <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
-            CANDIDATO NO APTO — {cv.motivoDescarte||'Descartado del proceso'}
+            CANDIDATO NO APTO — {cv.motivoDescarte || (cv as any).motivoQuitadoProceso || 'Descartado del proceso'}
           </div>
         )}
 
-        {/* Banda naranja — repostulación */}
         {cv.repostulacionDescartado && !isDiscarded && (
           <div className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-t-lg text-sm font-semibold">
             <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
@@ -1143,7 +1411,20 @@ export const AdminPanel: React.FC = () => {
 
         <div className="p-4 flex items-start justify-between">
           <div className="flex-1">
-            <p className="font-semibold text-lg">{cv.nombre} {cv.apellido}</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="font-semibold text-lg">{cv.nombre} {cv.apellido}</p>
+              {/* Badges de puntuación */}
+              {tienePuntuacionRRHH && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
+                  <Trophy className="w-3 h-3"/> RRHH: {tienePuntuacionRRHH}/10
+                </span>
+              )}
+              {tienePuntuacionArea && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
+                  <Trophy className="w-3 h-3"/> Área Técnica: {tienePuntuacionArea}/10
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
               <p>DNI: {cv.dni}</p>
               <p>Teléfono: ({cv.telefonoArea}) {cv.telefonoNumero}</p>
@@ -1154,7 +1435,6 @@ export const AdminPanel: React.FC = () => {
               <p>Cargado: {new Date(cv.uploadedAt).toLocaleDateString('es-AR')}</p>
             </div>
 
-            {/* Badge estado selección */}
             {cv.puestoSeleccionado && (
               <div className={`mt-3 p-3 rounded-lg border ${badgeBg}`}>
                 <p className={`font-medium ${badgeTxt}`}>Puesto: {cv.puestoSeleccionado}</p>
@@ -1164,10 +1444,8 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            {/* Badges exámenes */}
             <div className="mt-2"><ExamBadges cv={cv}/></div>
 
-            {/* Notas examen físico */}
             {cv.examenFisico&&cv.examenFisicoNotas&&(
               <p className="text-xs text-blue-600 mt-1">📋 Físico: {cv.examenFisicoNotas}</p>
             )}
@@ -1175,7 +1453,6 @@ export const AdminPanel: React.FC = () => {
               <p className="text-xs text-green-600 mt-1">📋 Psicotécnico: {cv.examenPsicotecnicoNotas}</p>
             )}
 
-            {/* Indicador de referencias cargadas */}
             {cv.referenciasLaborales&&(()=>{
               try {
                 const refs: ReferenciaEntry[] = JSON.parse(cv.referenciasLaborales!);
@@ -1190,8 +1467,7 @@ export const AdminPanel: React.FC = () => {
               } catch { return null; }
             })()}
 
-            {/* Historial */}
-            {cv.historialEstados&&cv.historialEstados.length>0&&(
+            {cv.historialEstados && cv.historialEstados.length > 0 && (
               <div className="mt-2">
                 <button onClick={()=>setShowHistory(v=>!v)}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
@@ -1214,16 +1490,44 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           {/* Botones */}
-          <div className="flex flex-wrap gap-2 ml-4 justify-end max-w-[200px]">
+          <div className="flex flex-wrap gap-2 ml-4 justify-end max-w-[260px]">
 
-            {/* Descargar */}
+            {/* Historial */}
+            <button onClick={()=>setHistorialModal(cv)} title="Ver trazabilidad"
+              className="px-3 py-2 text-white text-sm rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors">
+              <History className="w-4 h-4"/>
+            </button>
+
+            {/* Ranking RRHH */}
+            {activeTab === 'entrevistaRRHH' && (
+              <button onClick={() => setRankingModal({ cv, tipo: 'RRHH' })} 
+                title="Puntuar entrevista RRHH"
+                className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium
+                  ${tienePuntuacionRRHH
+                    ? 'bg-amber-100 border-amber-400 text-amber-800'
+                    : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+                <Trophy className="w-4 h-4"/>
+              </button>
+            )}
+
+            {/* Ranking Área Técnica */}
+            {activeTab === 'entrevistaAreaTecnica' && (
+              <button onClick={() => setRankingModal({ cv, tipo: 'Area Tecnica' })} 
+                title="Puntuar entrevista Área Técnica"
+                className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium
+                  ${tienePuntuacionArea
+                    ? 'bg-purple-100 border-purple-400 text-purple-800'
+                    : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
+                <Trophy className="w-4 h-4"/>
+              </button>
+            )}
+
             <button onClick={()=>handleDownload(cv)} title="Descargar CV"
               className="px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
               <Download className="w-4 h-4"/>
             </button>
 
-            {/* Referencias — solo en Entrevista RRHH */}
-            {activeTab==='entrevistaRRHH'&&(
+            {activeTab==='entrevistaRRHH' && (
               <button onClick={()=>setReferencesCV(cv)} title="Ficha de referencias"
                 className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium
                   ${cv.referenciasLaborales
@@ -1233,24 +1537,21 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Agendar — ambas pestañas de entrevista */}
-            {isInterviewTab&&(
+            {isInterviewTab && (
               <button onClick={()=>setSchedulingCV(isScheduling?null:cv.id!)} title="Agendar entrevista"
                 className={`px-3 py-2 text-white text-sm rounded-lg transition-colors ${isScheduling?'bg-purple-800':'bg-purple-600 hover:bg-purple-700'}`}>
                 <Calendar className="w-4 h-4"/>
               </button>
             )}
 
-            {/* Enviar mail — solo en Terna */}
-            {isTerna&&(
+            {isTerna && (
               <button onClick={()=>handleSendMail(cv)} title="Enviar email al candidato"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600 transition-colors">
                 <Mail className="w-4 h-4"/>
               </button>
             )}
 
-            {/* Examen físico — solo en Terna */}
-            {isTerna&&(
+            {isTerna && (
               <button onClick={()=>setExamModal({cv,tipo:'fisico'})}
                 title="Solicitar examen físico"
                 className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium
@@ -1261,8 +1562,7 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Examen psicotécnico — solo en Terna */}
-            {isTerna&&(
+            {isTerna && (
               <button onClick={()=>setExamModal({cv,tipo:'psicotecnico'})}
                 title="Solicitar examen psicotécnico"
                 className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium
@@ -1273,24 +1573,29 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Gestionar — no en Seleccionados ni Descartados */}
-            {activeTab!=='descartados'&&activeTab!=='seleccionados'&&(
+            {activeTab!=='descartados' && activeTab!=='seleccionados' && activeTab!=='todos' && (
               <button onClick={()=>{setSchedulingCV(null);handleStartSelection(cv.id!);}} title="Gestionar selección"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700 transition-colors">
                 <UserCheck className="w-4 h-4"/>
               </button>
             )}
 
-            {/* Descartar */}
-            {(activeTab==='entrevistaRRHH'||activeTab==='entrevistaCoord'||activeTab==='terna')&&(
+            {(activeTab==='entrevistaRRHH' || activeTab==='entrevistaAreaTecnica' || activeTab==='terna') && (
               <button onClick={()=>setDiscardingCV(cv)} title="Descartar candidato"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-red-500 hover:bg-red-600 transition-colors">
                 <ThumbsDown className="w-4 h-4"/>
               </button>
             )}
 
-            {/* Reactivar — solo en Descartados */}
-            {activeTab==='descartados'&&(
+            {/* Quitar del proceso - NUEVO */}
+            {activeTab !== 'todos' && activeTab !== 'descartados' && activeTab !== 'seleccionados' && (
+              <button onClick={() => setQuitProcesoModal(cv)} title="Quitar del proceso"
+                className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
+                <ArrowLeftCircle className="w-4 h-4"/>
+              </button>
+            )}
+
+            {activeTab==='descartados' && (
               <button onClick={()=>handleReactivar(cv)} title="Reactivar candidato"
                 className="px-3 py-2 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-1">
                 <RotateCcw className="w-4 h-4"/>
@@ -1298,15 +1603,6 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
 
-            {/* Quitar del proceso — todas las pestañas con proceso activo */}
-            {activeTab!=='todos'&&activeTab!=='descartados'&&(
-              <button onClick={()=>handleRemoveFromSelection(cv)} title="Quitar del proceso"
-                className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
-                <ArrowLeftCircle className="w-4 h-4"/>
-              </button>
-            )}
-
-            {/* Eliminar */}
             <button onClick={()=>handleDelete(cv)} title="Eliminar CV"
               className="px-3 py-2 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors">
               <Trash2 className="w-4 h-4"/>
@@ -1314,13 +1610,11 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Scheduler inline */}
-        {isScheduling&&isInterviewTab&&(
+        {isScheduling && isInterviewTab && (
           <InterviewScheduler cv={cv} label={schedulerLabel} onClose={()=>setSchedulingCV(null)}/>
         )}
 
-        {/* Editor de selección */}
-        {isEditing&&(
+        {isEditing && (
           <SelectionEditor
             cv={cv}
             availableEstados={getAvailableEstados(activeTab)}
@@ -1336,18 +1630,30 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="space-y-6">
 
-      {discardingCV&&<DiscardModal cv={discardingCV} onConfirm={(m,n)=>handleDiscard(discardingCV,m,n)} onCancel={()=>setDiscardingCV(null)}/>}
-      {examModal&&<ExamModal cv={examModal.cv} tipo={examModal.tipo}
+      {discardingCV && <DiscardModal cv={discardingCV} onConfirm={(m,n)=>handleDiscard(discardingCV,m,n)} onCancel={()=>setDiscardingCV(null)}/>}
+      {examModal && <ExamModal cv={examModal.cv} tipo={examModal.tipo}
         onConfirm={(n,f,res)=>handleSaveExam(examModal.cv,examModal.tipo,n,f,res)}
         onCancel={()=>setExamModal(null)}
         onCancelarExamen={()=>handleCancelarExamen(examModal.cv,examModal.tipo)}/>}
-      {referencesCV&&<ReferencesModal
+      {referencesCV && <ReferencesModal
         cv={referencesCV}
         onSave={async(texto)=>{ await handleSaveReferencias(referencesCV.id!,texto); }}
         onClose={()=>setReferencesCV(null)}/>}
+      {rankingModal && <RankingModalComponent
+        cv={rankingModal.cv}
+        tipo={rankingModal.tipo}
+        onConfirm={(p,n)=>handleSaveRanking(rankingModal.cv, rankingModal.tipo, p, n)}
+        onCancel={()=>setRankingModal(null)}/>}
+      {quitProcesoModal && <QuitarProcesoModal
+        cv={quitProcesoModal}
+        onConfirm={(m,n)=>handleQuitProceso(quitProcesoModal, m, n)}
+        onCancel={()=>setQuitProcesoModal(null)}/>}
+      {historialModal && <HistorialModal
+        cv={historialModal}
+        onClose={()=>setHistorialModal(null)}/>}
 
       {/* Pestañas */}
-      <div className="flex flex-wrap border-b-2 border-gray-200">
+      <div className="flex flex-wrap border-b-2 border-gray-200 overflow-x-auto">
         {TABS.map(tab=>(
           <button key={tab.id} onClick={()=>{ setActiveTab(tab.id); setSelectedPuesto('Todos'); }}
             className={`px-4 py-3 font-medium transition-colors text-sm whitespace-nowrap
@@ -1361,31 +1667,32 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {/* Banners contextuales */}
-      {activeTab==='entrevistaRRHH'&&(
+      {activeTab==='entrevistaRRHH' && (
         <p className="text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
           Candidatos en entrevista con RRHH. Usá <Calendar className="w-3.5 h-3.5 inline"/> para agendar por Meet, Zoom o Teams.
+          También podés puntuar al candidato con <Trophy className="w-3.5 h-3.5 inline"/>.
         </p>
       )}
-      {activeTab==='entrevistaCoord'&&(
+      {activeTab==='entrevistaAreaTecnica' && (
         <p className="text-sm text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
-          Candidatos en entrevista con Coordinador. Agendá la reunión y avanzalos a <strong>Terna Preseleccionados</strong>.
+          Candidatos en entrevista con Área Técnica. Agendá la reunión, puntuá al candidato y avanzalos a <strong>Terna Preseleccionados</strong>.
         </p>
       )}
-      {activeTab==='terna'&&(
+      {activeTab==='terna' && (
         <p className="text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
           Terna de candidatos preseleccionados. Podés enviarles un <Mail className="w-3.5 h-3.5 inline"/> mail, solicitar
           <FlaskConical className="w-3.5 h-3.5 inline mx-1 text-blue-600"/> examen físico
           o <Brain className="w-3.5 h-3.5 inline mx-1 text-green-600"/> psicotécnico, y avanzarlos a <strong>Seleccionado</strong>.
         </p>
       )}
-      {activeTab==='seleccionados'&&(
+      {activeTab==='seleccionados' && (
         <p className="text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
           <Trophy className="w-3.5 h-3.5 inline mr-1"/>Candidatos que ingresaron a la empresa.
         </p>
       )}
-      {activeTab==='descartados'&&(
+      {activeTab==='descartados' && (
         <p className="text-sm text-red-700 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-          <AlertTriangle className="w-3.5 h-3.5 inline mr-1"/>Candidatos No Aptos.
+          <AlertTriangle className="w-3.5 h-3.5 inline mr-1"/>Candidatos No Aptos o Quitados del Proceso.
           Usá <RotateCcw className="w-3.5 h-3.5 inline"/> <strong>Reactivar</strong> para devolverlos a la lista con nota del descarte anterior.
         </p>
       )}
@@ -1393,7 +1700,6 @@ export const AdminPanel: React.FC = () => {
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4">
 
-        {/* Área — siempre visible */}
         <div className="flex items-center gap-2">
           <label className="font-medium text-manzur-primary text-sm">Área:</label>
           <select value={selectedArea} onChange={e=>{ setSelectedArea(e.target.value); setSelectedPuesto('Todos'); }}
@@ -1403,7 +1709,6 @@ export const AdminPanel: React.FC = () => {
           </select>
         </div>
 
-        {/* Formación — solo en "Todos los CVs" */}
         {activeTab==='todos' && (
           <div className="flex items-center gap-2">
             <label className="font-medium text-manzur-primary text-sm">Formación:</label>
@@ -1415,7 +1720,19 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
-        {/* Puesto — solo en pestañas != todos, dependiente del área */}
+        {/* Filtro de lugar de residencia - NUEVO */}
+        {activeTab==='todos' && (
+          <div className="flex items-center gap-2">
+            <label className="font-medium text-manzur-primary text-sm">Residencia:</label>
+            <select value={selectedResidencia} onChange={e=>setSelectedResidencia(e.target.value)}
+              className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg">
+              {lugaresResidencia.map(lugar => (
+                <option key={lugar} value={lugar}>{lugar}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {activeTab !== 'todos' && puestosDisponibles.length > 0 && (
           <div className="flex items-center gap-2">
             <label className="font-medium text-manzur-primary text-sm">Puesto:</label>
@@ -1441,15 +1758,13 @@ export const AdminPanel: React.FC = () => {
         <p className="text-center text-gray-500 py-8">
           {activeTab==='todos'?'No hay CVs disponibles'
           :activeTab==='entrevistaRRHH'?'No hay candidatos en Entrevista RRHH'
-          :activeTab==='entrevistaCoord'?'No hay candidatos en Entrevista Coordinador'
+          :activeTab==='entrevistaAreaTecnica'?'No hay candidatos en Entrevista Área Técnica'
           :activeTab==='terna'?'No hay candidatos en la terna'
           :activeTab==='seleccionados'?'No hay candidatos seleccionados aún'
           :'No hay candidatos descartados'}
         </p>
       ) : activeTab==='terna' ? (
-        // ── Terna: agrupado y ordenado por área → puesto, con prioridad ─────
         (() => {
-          // Agrupar por área+puesto, ordenado alfabéticamente
           const grupos: Record<string, CV[]> = {};
           [...displayCvs]
             .sort((a,b)=>{
@@ -1464,7 +1779,6 @@ export const AdminPanel: React.FC = () => {
             });
 
           return Object.entries(grupos).map(([grupKey, grupCvs])=>{
-            // Ordenar dentro del grupo por prioridad (los sin prioridad al final)
             const ordered = [...grupCvs].sort((a,b)=>{
               const pa = a.prioridadTerna ?? 9999;
               const pb = b.prioridadTerna ?? 9999;
@@ -1480,7 +1794,6 @@ export const AdminPanel: React.FC = () => {
                 <div className="space-y-3">
                   {ordered.map((cv, idx)=>(
                     <div key={cv.id} className="flex items-stretch gap-3">
-                      {/* Control de prioridad */}
                       <div className="flex flex-col items-center justify-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-2 min-w-[52px]">
                         <span className={`text-lg font-black leading-none ${cv.prioridadTerna ? 'text-amber-700' : 'text-gray-300'}`}>
                           {cv.prioridadTerna ?? '—'}
@@ -1489,7 +1802,6 @@ export const AdminPanel: React.FC = () => {
                           <button
                             disabled={idx===0}
                             onClick={()=>{
-                              // Subir: intercambiar prioridades con el anterior
                               const prev = ordered[idx-1];
                               const myPrio  = cv.prioridadTerna  ?? idx+1;
                               const prevPrio= prev.prioridadTerna ?? idx;
@@ -1503,7 +1815,6 @@ export const AdminPanel: React.FC = () => {
                           <button
                             disabled={idx===ordered.length-1}
                             onClick={()=>{
-                              // Bajar: intercambiar prioridades con el siguiente
                               const next = ordered[idx+1];
                               const myPrio   = cv.prioridadTerna  ?? idx+1;
                               const nextPrio = next.prioridadTerna ?? idx+2;
@@ -1516,7 +1827,6 @@ export const AdminPanel: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      {/* Card normal */}
                       <div className="flex-1 min-w-0">
                         <CVCard cv={cv}/>
                       </div>
