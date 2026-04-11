@@ -223,7 +223,7 @@ export interface CV {
   examenPsicotecnicoFecha?: string;
   examenPsicotecnicoNotas?: string;
   examenPsicotecnicoResultado?: 'Apto' | 'Apto con observaciones' | 'No Apto' | '';
-  // Referencias
+  // Referenciass
   referenciasLaborales?: string;
   // Historial
   historialEstados?: Array<{
