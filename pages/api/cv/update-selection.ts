@@ -55,43 +55,56 @@ export default async function handler(
 
     const currentData = cvDoc.data()!;
 
+    // pages/api/cv/update-selection.ts
+    // Reemplaza toda la sección de reactivar con este código:
+
+    // ── REACTIVAR candidato descartado ────────────────────────────────────────
     if (accion === "reactivar") {
-      // Obtener el motivo de descarte actual (el que se guardó cuando se descartó)
+      // Obtener datos del descarte anterior
       const motivoAnterior =
         currentData.motivoDescarte || "Sin motivo registrado";
       const fechaAnterior =
         currentData.fechaSeleccion || new Date().toISOString();
       const notasAnteriores = currentData.notasAdmin || "";
+      const estadoAnterior = currentData.estadoSeleccion || "Descartado";
 
-      // Registrar en historial el descarte anterior (para trazabilidad)
+      console.log("🔄 Reactivando candidato:", cvId);
+      console.log("📝 Motivo de descarte anterior:", motivoAnterior);
+      console.log("📅 Fecha de descarte anterior:", fechaAnterior);
+
+      // Registrar en historial el descarte anterior
       const entradaHistorialDescarte = {
-        estado: currentData.estadoSeleccion || "Descartado",
+        estado: estadoAnterior,
         fecha: fechaAnterior,
         motivo: motivoAnterior,
         notas: notasAnteriores,
-        realizadoPor: session.user.email,
+        realizadoPor: session.user.email || "sistema",
       };
 
       // Registrar en historial la reactivación
       const entradaHistorialReactivacion = {
         estado: "Reactivado",
         fecha: new Date().toISOString(),
-        motivo: `Reactivado desde ${currentData.estadoSeleccion || "Descartado"} - Motivo original: ${motivoAnterior}`,
-        notas: `El candidato fue reactivado. Motivo de descarte anterior: ${motivoAnterior}`,
-        realizadoPor: session.user.email,
+        motivo: `Reactivado desde ${estadoAnterior}`,
+        notas: `Motivo de descarte anterior: ${motivoAnterior}`,
+        realizadoPor: session.user.email || "sistema",
       };
 
+      // Actualizar el documento
       await cvRef.update({
+        // Limpiar datos de selección
         puestoSeleccionado: "",
         estadoSeleccion: "En Curso",
         notasAdmin: "",
         fechaSeleccion: new Date().toISOString(),
         motivoDescarte: "",
+
+        // Guardar historial de descarte
         repostulacionDescartado: true,
         motivoDescarteAnterior: motivoAnterior,
         fechaDescarteAnterior: fechaAnterior,
         fechaReactivacion: new Date().toISOString(),
-        notasReactivacion: `Reactivado por ${session.user.email}. Motivo anterior: ${motivoAnterior}`,
+
         // Limpiar exámenes
         examenFisico: false,
         examenFisicoFecha: null,
@@ -101,17 +114,21 @@ export default async function handler(
         examenPsicotecnicoFecha: null,
         examenPsicotecnicoNotas: "",
         examenPsicotecnicoResultado: "",
+
         // Limpiar puntuaciones
         puntuacionRRHH: null,
         puntuacionAreaTecnica: null,
         fechaEntrevistaRRHH: null,
         fechaEntrevistaAreaTecnica: null,
+
         // Agregar al historial
         historialEstados: FieldValue.arrayUnion(
           entradaHistorialDescarte,
           entradaHistorialReactivacion,
         ),
       });
+
+      console.log("✅ Candidato reactivado. Motivo guardado:", motivoAnterior);
 
       return res.status(200).json({
         success: true,
@@ -182,12 +199,10 @@ export default async function handler(
         motivoDescarte: "Eliminado del proceso de selección",
         historialEstados: FieldValue.arrayUnion(entradaHistorial),
       });
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "CV removido del proceso de selección",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "CV removido del proceso de selección",
+      });
     }
 
     // ── ACTUALIZAR estado de selección ────────────────────────────────────────
