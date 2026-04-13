@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase, ChevronRight, Edit2, Check, X } from 'lucide-react';
 import { BusquedaActiva, AREAS, AREAS_PUESTOS } from '@/lib/types';
 
-export const AdminSearchPanel: React.FC = () => {
+const AdminSearchPanel: React.FC = () => {
   const [busquedas, setBusquedas] = useState<BusquedaActiva[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -130,7 +130,6 @@ export const AdminSearchPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold text-manzur-primary flex items-center gap-2">
@@ -156,7 +155,6 @@ export const AdminSearchPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Formulario de nueva/edición búsqueda */}
       {showForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
           <h3 className="font-semibold text-manzur-primary">
@@ -205,7 +203,6 @@ export const AdminSearchPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Selector de puesto */}
           {form.area && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -243,7 +240,6 @@ export const AdminSearchPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Lista de búsquedas */}
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
       ) : busquedas.length === 0 ? (
@@ -319,3 +315,6 @@ export const AdminSearchPanel: React.FC = () => {
     </div>
   );
 };
+
+// ✅ EXPORT DEFAULT - Esto es lo que necesitas
+export default AdminSearchPanel;

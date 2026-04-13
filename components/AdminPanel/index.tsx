@@ -1,7 +1,7 @@
 // components/AdminPanel/index.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Mail, FlaskConical, Brain, Trophy, AlertTriangle, RotateCcw } from 'lucide-react';
-import { CV, ESTADOS_SELECCION, MOTIVOS_DESCARTE, TabType, ExamType, ExamResultado } from '@/lib/types';
+import { CV, ESTADOS_SELECCION, TabType, ExamType, ExamResultado } from '@/lib/types';
 import { TabsNav } from './TabsNav';
 import { FiltersBar } from './FiltersBar';
 import { CVCard } from './CVCard';
@@ -11,8 +11,14 @@ import { HistorialModal } from './HistorialModal';
 import { DiscardModal } from './DiscardModal';
 import { ExamModal } from './ExamModal';
 import { ReferencesModal } from './ReferencesModal';
+import AdminSearchPanel from '@/components/AdminSearchPanel';
+
+type AdminMainTab = 'gestion' | 'busquedas';
 
 export const AdminPanel: React.FC = () => {
+  const [activeMainTab, setActiveMainTab] = useState<AdminMainTab>('gestion');
+  
+  // Estados existentes del panel de CVs
   const [cvs, setCvs] = useState<CV[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('todos');
   const [selectedArea, setSelectedArea] = useState('Todos');
@@ -29,6 +35,7 @@ export const AdminPanel: React.FC = () => {
   const [quitProcesoModal, setQuitProcesoModal] = useState<CV | null>(null);
   const [historialModal, setHistorialModal] = useState<CV | null>(null);
 
+  // Función para cargar CVs
   const fetchCVs = async () => {
     setLoading(true);
     try {
@@ -106,36 +113,26 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleStartSelection = (cvId: string) => { setEditingCV(cvId); setSchedulingCV(null); };
+  const handleCancelSelection = () => setEditingCV(null);
 
- // components/AdminPanel/index.tsx - Solo la función handleSaveSelection actualizada
-
-// components/AdminPanel/index.tsx - Solo la función handleSaveSelection actualizada
-
-const handleSaveSelection = async (cvId: string, data: { puesto: string; estado: string; notas: string; area?: string }) => {
-  if (!data.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
-  try {
-    const r = await fetch('/api/cv/update-selection', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cvId,
-        puestoSeleccionado: data.puesto,
-        estadoSeleccion: data.estado,
-        notasAdmin: data.notas,
-        areaAsignada: data.area || ''
-      }),
-    });
-    const d = await r.json();
-    if (r.ok) {
-      setEditingCV(null);
-      fetchCVs();
-    } else {
-      alert(d.error || 'Error al guardar');
-    }
-  } catch {
-    alert('Error al guardar');
-  }
-};
+  const handleSaveSelection = async (cvId: string, data: { puesto: string; estado: string; notas: string; area?: string }) => {
+    if (!data.puesto.trim()) { alert('Debe ingresar el puesto'); return; }
+    try {
+      const r = await fetch('/api/cv/update-selection', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvId,
+          puestoSeleccionado: data.puesto,
+          estadoSeleccion: data.estado,
+          notasAdmin: data.notas,
+          areaAsignada: data.area || ''
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) { setEditingCV(null); fetchCVs(); }
+      else alert(d.error || 'Error al guardar');
+    } catch { alert('Error al guardar'); }
+  };
 
   const handleDiscard = async (cv: CV, motivo: string, notas: string) => {
     try {
@@ -209,17 +206,7 @@ const handleSaveSelection = async (cvId: string, data: { puesto: string; estado:
     window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
   };
 
-  const handleSetPrioridad = async (cvId: string, prioridad: number) => {
-    try {
-      await fetch('/api/cv/update-selection', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvId, prioridadTerna: prioridad }),
-      });
-      fetchCVs();
-    } catch { alert('Error al guardar prioridad'); }
-  };
-
-  // Filtros y cálculos
+  // Filtros y cálculos para CVs
   const base = (list: CV[]) => list.filter(cv => {
     if (selectedArea !== 'Todos' && cv.area !== selectedArea) return false;
     if (selectedFormacion !== 'Todos' && cv.nivelFormacion !== selectedFormacion) return false;
@@ -270,98 +257,117 @@ const handleSaveSelection = async (cvId: string, data: { puesto: string; estado:
     { id: 'descartados' as TabType, label: 'Descartados / No Aptos', count: descartados.length, accent: 'border-red-500', active: 'text-red-600' },
   ];
 
+  // Extraer el nav a una variable para evitar duplicación
+  const mainTabsNav = (
+    <div className="flex border-b-2 border-gray-200">
+      <button
+        onClick={() => setActiveMainTab('gestion')}
+        className={`px-6 py-3 font-semibold text-sm transition-colors ${
+          activeMainTab === 'gestion'
+            ? 'border-b-2 border-manzur-primary text-manzur-primary'
+            : 'text-gray-500 hover:text-manzur-primary'
+        }`}
+      >
+        Gestión de Talentos
+      </button>
+      <button
+        onClick={() => setActiveMainTab('busquedas')}
+        className={`px-6 py-3 font-semibold text-sm transition-colors ${
+          activeMainTab === 'busquedas'
+            ? 'border-b-2 border-manzur-primary text-manzur-primary'
+            : 'text-gray-500 hover:text-manzur-primary'
+        }`}
+      >
+        Búsquedas Activas
+      </button>
+    </div>
+  );
+
+  // Renderizado único
   return (
     <div className="space-y-6">
-      {/* Modales */}
-      {discardingCV && <DiscardModal cv={discardingCV} onConfirm={(m, n) => handleDiscard(discardingCV, m, n)} onCancel={() => setDiscardingCV(null)} />}
-      {examModal && (
-        <ExamModal
-          cv={examModal.cv}
-          tipo={examModal.tipo}
-          onConfirm={(n, f, res) => handleSaveExam(examModal.cv, examModal.tipo, n, f, res)}
-          onCancel={() => setExamModal(null)}
-          onCancelarExamen={() => handleCancelarExamen(examModal.cv, examModal.tipo)}
-        />
-      )}
-      {referencesCV && <ReferencesModal cv={referencesCV} onSave={async (texto) => { await handleSaveReferencias(referencesCV.id!, texto); }} onClose={() => setReferencesCV(null)} />}
-      {rankingModal && <RankingModal cv={rankingModal.cv} tipo={rankingModal.tipo} onConfirm={(p, n) => handleSaveRanking(rankingModal.cv, rankingModal.tipo, p, n)} onCancel={() => setRankingModal(null)} />}
-      {quitProcesoModal && <QuitarProcesoModal cv={quitProcesoModal} onConfirm={(m, n) => handleQuitProceso(quitProcesoModal, m, n)} onCancel={() => setQuitProcesoModal(null)} />}
-      {historialModal && <HistorialModal cv={historialModal} onClose={() => setHistorialModal(null)} />}
+      {mainTabsNav}
 
-      {/* Pestañas */}
-      <TabsNav tabs={tabs} activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSelectedPuesto('Todos'); }} />
+      {activeMainTab === 'busquedas' ? (
+        <AdminSearchPanel />
+      ) : (
+        <>
+          {/* Modales */}
+          {discardingCV && <DiscardModal cv={discardingCV} onConfirm={(m, n) => handleDiscard(discardingCV, m, n)} onCancel={() => setDiscardingCV(null)} />}
+          {examModal && (
+            <ExamModal
+              cv={examModal.cv}
+              tipo={examModal.tipo}
+              onConfirm={(n, f, res) => handleSaveExam(examModal.cv, examModal.tipo, n, f, res)}
+              onCancel={() => setExamModal(null)}
+              onCancelarExamen={() => handleCancelarExamen(examModal.cv, examModal.tipo)}
+            />
+          )}
+          {referencesCV && <ReferencesModal cv={referencesCV} onSave={async (texto) => { await handleSaveReferencias(referencesCV.id!, texto); }} onClose={() => setReferencesCV(null)} />}
+          {rankingModal && <RankingModal cv={rankingModal.cv} tipo={rankingModal.tipo} onConfirm={(p, n) => handleSaveRanking(rankingModal.cv, rankingModal.tipo, p, n)} onCancel={() => setRankingModal(null)} />}
+          {quitProcesoModal && <QuitarProcesoModal cv={quitProcesoModal} onConfirm={(m, n) => handleQuitProceso(quitProcesoModal, m, n)} onCancel={() => setQuitProcesoModal(null)} />}
+          {historialModal && <HistorialModal cv={historialModal} onClose={() => setHistorialModal(null)} />}
 
-      {/* Banners contextuales */}
-      {activeTab === 'entrevistaRRHH' && (
-        <p className="text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-          Candidatos en entrevista con RRHH. Usá <Calendar className="w-3.5 h-3.5 inline" /> para agendar. También podés puntuar al candidato con <Trophy className="w-3.5 h-3.5 inline" />.
-        </p>
-      )}
-      {activeTab === 'entrevistaAreaTecnica' && (
-        <p className="text-sm text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
-          Candidatos en entrevista con Área Técnica. Agendá, puntuá y avanzalos a <strong>Terna Preseleccionados</strong>.
-        </p>
-      )}
-      {activeTab === 'terna' && (
-        <p className="text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-          Terna de candidatos. Podés enviarles <Mail className="w-3.5 h-3.5 inline" /> mail, solicitar <FlaskConical className="w-3.5 h-3.5 inline mx-1 text-blue-600" /> examen físico o <Brain className="w-3.5 h-3.5 inline mx-1 text-green-600" /> psicotécnico.
-        </p>
-      )}
-      {activeTab === 'seleccionados' && (
-        <p className="text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-          <Trophy className="w-3.5 h-3.5 inline mr-1" />Candidatos que ingresaron a la empresa.
-        </p>
-      )}
-      {activeTab === 'descartados' && (
-        <p className="text-sm text-red-700 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-          <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Candidatos No Aptos o Quitados del Proceso. Usá <RotateCcw className="w-3.5 h-3.5 inline" /> <strong>Reactivar</strong> para devolverlos.
-        </p>
-      )}
+          {/* Pestañas de estados de CV */}
+          <TabsNav tabs={tabs} activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSelectedPuesto('Todos'); }} />
 
-      {/* Filtros */}
-      <FiltersBar
-        activeTab={activeTab}
-        selectedArea={selectedArea}
-        onAreaChange={(area) => { setSelectedArea(area); setSelectedPuesto('Todos'); }}
-        selectedFormacion={selectedFormacion}
-        onFormacionChange={setSelectedFormacion}
-        selectedResidencia={selectedResidencia}
-        onResidenciaChange={setSelectedResidencia}
-        selectedPuesto={selectedPuesto}
-        onPuestoChange={setSelectedPuesto}
-        puestosDisponibles={puestosDisponibles}
-        lugaresResidencia={lugaresResidencia}
-        onRefresh={fetchCVs}
-      />
+          {/* Banners contextuales */}
+          {activeTab === 'entrevistaRRHH' && (
+            <p className="text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+              Candidatos en entrevista con RRHH. Usá <Calendar className="w-3.5 h-3.5 inline" /> para agendar. También podés puntuar al candidato con <Trophy className="w-3.5 h-3.5 inline" />.
+            </p>
+          )}
+          {activeTab === 'entrevistaAreaTecnica' && (
+            <p className="text-sm text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
+              Candidatos en entrevista con Área Técnica. Agendá, puntuá y avanzalos a <strong>Terna Preseleccionados</strong>.
+            </p>
+          )}
+          {activeTab === 'terna' && (
+            <p className="text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+              Terna de candidatos. Podés enviarles <Mail className="w-3.5 h-3.5 inline" /> mail, solicitar <FlaskConical className="w-3.5 h-3.5 inline mx-1 text-blue-600" /> examen físico o <Brain className="w-3.5 h-3.5 inline mx-1 text-green-600" /> psicotécnico.
+            </p>
+          )}
+          {activeTab === 'seleccionados' && (
+            <p className="text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+              <Trophy className="w-3.5 h-3.5 inline mr-1" />Candidatos que ingresaron a la empresa.
+            </p>
+          )}
+          {activeTab === 'descartados' && (
+            <p className="text-sm text-red-700 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
+              <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Candidatos No Aptos o Quitados del Proceso. Usá <RotateCcw className="w-3.5 h-3.5 inline" /> <strong>Reactivar</strong> para devolverlos.
+            </p>
+          )}
 
-      <div className="text-sm text-manzur-primary">Total: {displayCvs.length} CV{displayCvs.length !== 1 ? 's' : ''}</div>
+          {/* Filtros */}
+          <FiltersBar
+            activeTab={activeTab}
+            selectedArea={selectedArea}
+            onAreaChange={(area) => { setSelectedArea(area); setSelectedPuesto('Todos'); }}
+            selectedFormacion={selectedFormacion}
+            onFormacionChange={setSelectedFormacion}
+            selectedResidencia={selectedResidencia}
+            onResidenciaChange={setSelectedResidencia}
+            selectedPuesto={selectedPuesto}
+            onPuestoChange={setSelectedPuesto}
+            puestosDisponibles={puestosDisponibles}
+            lugaresResidencia={lugaresResidencia}
+            onRefresh={fetchCVs}
+          />
 
-      {loading ? (
-        <p className="text-center text-gray-500 py-8">Cargando...</p>
-      ) : displayCvs.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">No hay CVs disponibles</p>
-      ) : activeTab === 'terna' ? (
-        (() => {
-          const grupos: Record<string, CV[]> = {};
-          [...displayCvs].sort((a, b) => {
-            const aKey = `${a.area || ''}|${a.puestoSeleccionado || a.subArea || ''}`;
-            const bKey = `${b.area || ''}|${b.puestoSeleccionado || b.subArea || ''}`;
-            return aKey.localeCompare(bKey, 'es');
-          }).forEach(cv => {
-            const key = `${cv.area || 'Sin área'} — ${cv.puestoSeleccionado || cv.subArea || 'Sin puesto'}`;
-            if (!grupos[key]) grupos[key] = [];
-            grupos[key].push(cv);
-          });
-          return Object.entries(grupos).map(([grupKey, grupCvs]) => {
-            const ordered = [...grupCvs].sort((a, b) => (a.prioridadTerna ?? 9999) - (b.prioridadTerna ?? 9999));
-            return (
-              <div key={grupKey} className="mb-8">
-                <h3 className="text-lg font-bold mb-3 pb-2 border-b-2 border-amber-300 text-amber-800 flex items-center gap-2">
-                  <Trophy className="w-4 h-4" />{grupKey}
-                  <span className="ml-1 text-sm font-normal text-amber-600">({grupCvs.length} candidato{grupCvs.length !== 1 ? 's' : ''})</span>
+          <div className="text-sm text-manzur-primary">Total: {displayCvs.length} CV{displayCvs.length !== 1 ? 's' : ''}</div>
+
+          {loading ? (
+            <p className="text-center text-gray-500 py-8">Cargando...</p>
+          ) : displayCvs.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No hay CVs disponibles</p>
+          ) : (
+            Object.entries(groupedCvs).map(([area, areaCvs]) => (
+              <div key={area} className="mb-8">
+                <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary">
+                  {area} ({areaCvs.length})
                 </h3>
                 <div className="space-y-3">
-                  {ordered.map((cv, idx) => (
+                  {areaCvs.map(cv => (
                     <CVCard
                       key={cv.id}
                       cv={cv}
@@ -369,7 +375,7 @@ const handleSaveSelection = async (cvId: string, data: { puesto: string; estado:
                       editingCV={editingCV}
                       schedulingCV={schedulingCV}
                       onStartSelection={handleStartSelection}
-                      onCancelSelection={() => setEditingCV(null)}
+                      onCancelSelection={handleCancelSelection}
                       onSaveSelection={handleSaveSelection}
                       onSchedule={setSchedulingCV}
                       onDownload={handleDownload}
@@ -386,42 +392,9 @@ const handleSaveSelection = async (cvId: string, data: { puesto: string; estado:
                   ))}
                 </div>
               </div>
-            );
-          });
-        })()
-      ) : (
-        Object.entries(groupedCvs).map(([area, areaCvs]) => (
-          <div key={area} className="mb-8">
-            <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary">
-              {area} ({areaCvs.length})
-            </h3>
-            <div className="space-y-3">
-              {areaCvs.map(cv => (
-                <CVCard
-                  key={cv.id}
-                  cv={cv}
-                  activeTab={activeTab}
-                  editingCV={editingCV}
-                  schedulingCV={schedulingCV}
-                  onStartSelection={handleStartSelection}
-                  onCancelSelection={() => setEditingCV(null)}
-                  onSaveSelection={handleSaveSelection}
-                  onSchedule={setSchedulingCV}
-                  onDownload={handleDownload}
-                  onDelete={handleDelete}
-                  onDiscard={setDiscardingCV}
-                  onReactivar={handleReactivar}
-                  onSendMail={handleSendMail}
-                  onExam={(cv, tipo) => setExamModal({ cv, tipo })}
-                  onReferences={setReferencesCV}
-                  onRanking={(cv, tipo) => setRankingModal({ cv, tipo })}
-                  onQuitProceso={setQuitProcesoModal}
-                  onHistorial={setHistorialModal}
-                />
-              ))}
-            </div>
-          </div>
-        ))
+            ))
+          )}
+        </>
       )}
     </div>
   );
