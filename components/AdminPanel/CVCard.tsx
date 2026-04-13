@@ -323,95 +323,95 @@ export const CVCard: React.FC<CVCardProps> = ({
         {/* ========== BOTONES ========== */}
         <div className="flex flex-wrap gap-2 ml-4 justify-end max-w-[260px]">
           {/* Historial */}
-          <button onClick={() => onHistorial(cv)} title="Ver trazabilidad" className="px-3 py-2 text-white text-sm rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors">
+          <button onClick={() => onHistorial(cv)} title="Ver trazabilidad" className="px-3 py-3 text-white text-sm rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors">
             <History className="w-4 h-4"/>
           </button>
 
           {/* Ranking RRHH */}
           {isRRHHTab && (
-            <button onClick={() => onRanking(cv, 'RRHH')} title="Puntuar entrevista RRHH" className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionRRHH ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+            <button onClick={() => onRanking(cv, 'RRHH')} title="Puntuar entrevista RRHH" className={`px-3 py-3 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionRRHH ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
               <Trophy className="w-4 h-4"/>
             </button>
           )}
 
           {/* Ranking Área Técnica */}
           {isAreaTecnicaTab && (
-            <button onClick={() => onRanking(cv, 'Area Tecnica')} title="Puntuar entrevista Área Técnica" className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionArea ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
+            <button onClick={() => onRanking(cv, 'Area Tecnica')} title="Puntuar entrevista Área Técnica" className={`px-3 py-3 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionArea ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
               <Trophy className="w-4 h-4"/>
             </button>
           )}
 
           {/* Descargar CV */}
-          <button onClick={() => onDownload(cv)} title="Descargar CV" className="px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
+          <button onClick={() => onDownload(cv)} title="Descargar CV" className="px-3 py-3 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
             <Download className="w-4 h-4"/>
           </button>
 
           {/* Referencias */}
           {isRRHHTab && (
-            <button onClick={() => onReferences(cv)} title="Ficha de referencias" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.referenciasLaborales ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
+            <button onClick={() => onReferences(cv)} title="Ficha de referencias" className={`px-3 py-3 text-sm rounded-lg border-2 transition-colors font-medium ${cv.referenciasLaborales ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
               <FileText className="w-4 h-4"/>
             </button>
           )}
 
           {/* Agendar entrevista */}
           {isInterviewTab && (
-            <button onClick={() => onSchedule(isScheduling ? null : cv.id!)} title="Agendar entrevista" className={`px-3 py-2 text-white text-sm rounded-lg transition-colors ${isScheduling ? 'bg-purple-800' : 'bg-purple-600 hover:bg-purple-700'}`}>
+            <button onClick={() => onSchedule(isScheduling ? null : cv.id!)} title="Agendar entrevista" className={`px-3 py-3 text-white text-sm rounded-lg transition-colors ${isScheduling ? 'bg-purple-800' : 'bg-purple-600 hover:bg-purple-700'}`}>
               <Calendar className="w-4 h-4"/>
             </button>
           )}
 
           {/* Enviar mail */}
           {isTerna && (
-            <button onClick={() => onSendMail(cv)} title="Enviar email" className="px-3 py-2 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600 transition-colors">
+            <button onClick={() => onSendMail(cv)} title="Enviar email" className="px-3 py-3 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600 transition-colors">
               <Mail className="w-4 h-4"/>
             </button>
           )}
 
           {/* Examen físico */}
           {isTerna && (
-            <button onClick={() => onExam(cv, 'fisico')} title="Examen físico" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenFisico ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
+            <button onClick={() => onExam(cv, 'fisico')} title="Examen físico" className={`px-3 py-3 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenFisico ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
               <FlaskConical className="w-4 h-4"/>
             </button>
           )}
 
           {/* Examen psicotécnico */}
           {isTerna && (
-            <button onClick={() => onExam(cv, 'psicotecnico')} title="Examen psicotécnico" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenPsicotecnico ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-green-300 text-green-600 hover:bg-green-50'}`}>
+            <button onClick={() => onExam(cv, 'psicotecnico')} title="Examen psicotécnico" className={`px-3 py-3 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenPsicotecnico ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-green-300 text-green-600 hover:bg-green-50'}`}>
               <Brain className="w-4 h-4"/>
             </button>
           )}
 
           {/* Gestionar selección - todas excepto seleccionados */}
           {activeTab !== 'seleccionados' && (
-            <button onClick={() => { onSchedule(null); onStartSelection(cv.id!); }} title="Gestionar selección" className="px-3 py-2 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700 transition-colors">
+            <button onClick={() => { onSchedule(null); onStartSelection(cv.id!); }} title="Gestionar selección" className="px-3 py-3 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700 transition-colors">
               <UserCheck className="w-4 h-4"/>
             </button>
           )}
 
           {/* Descartar */}
           {(activeTab === 'entrevistaRRHH' || activeTab === 'entrevistaAreaTecnica' || activeTab === 'terna' || activeTab === 'seleccionados') && (
-            <button onClick={() => onDiscard(cv)} title="Descartar" className="px-3 py-2 text-white text-sm rounded-lg bg-red-500 hover:bg-red-600 transition-colors">
+            <button onClick={() => onDiscard(cv)} title="Descartar" className="px-3 py-3 text-white text-sm rounded-lg bg-red-500 hover:bg-red-600 transition-colors">
               <ThumbsDown className="w-4 h-4"/>
             </button>
           )}
 
           {/* Quitar del proceso */}
           {activeTab !== 'todos' && activeTab !== 'descartados' && (
-            <button onClick={() => onQuitProceso(cv)} title="Quitar del proceso" className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
+            <button onClick={() => onQuitProceso(cv)} title="Quitar del proceso" className="px-3 py-3 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
               <ArrowLeftCircle className="w-4 h-4"/>
             </button>
           )}
 
           {/* Reactivar */}
           {activeTab === 'descartados' && (
-            <button onClick={() => onReactivar(cv)} title="Reactivar" className="px-3 py-2 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-1">
+            <button onClick={() => onReactivar(cv)} title="Reactivar" className="px-3 py-3 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-1">
               <RotateCcw className="w-4 h-4"/>
               <span className="text-xs font-medium">Reactivar</span>
             </button>
           )}
 
           {/* Eliminar */}
-          <button onClick={() => onDelete(cv)} title="Eliminar" className="px-3 py-2 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors">
+          <button onClick={() => onDelete(cv)} title="Eliminar" className="px-3 py-3 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors">
             <Trash2 className="w-4 h-4"/>
           </button>
         </div>
