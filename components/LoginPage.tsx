@@ -60,16 +60,7 @@ export const LoginPage: React.FC = () => {
           <Mail className="w-5 h-5" />
           Cargar mi CV
         </button>
-
-        {/* Separador */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400 uppercase tracking-wider">
-            Administración
-          </span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
-
+     
         {/* Campos colapsables */}
         {showEmailForm && (
           <div className="mt-4 space-y-3">
