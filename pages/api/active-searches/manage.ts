@@ -6,59 +6,106 @@ import { getFirestore } from '@/lib/firebase-admin';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
-  if (!session || !session.user) {
+  
+  // Verificar autenticación y rol de admin
+  if (!session || session.user?.email !== 'sistemas@ddonpedrosrl.com') {
     return res.status(401).json({ error: 'No autorizado' });
-  }
-  if (session.user.email !== 'sistemas@ddonpedrosrl.com') {
-    return res.status(403).json({ error: 'Acceso denegado' });
   }
 
   const db = getFirestore();
+  const { method } = req;
 
-  // ── POST: crear búsqueda ────────────────────────────────────────────────────
-  if (req.method === 'POST') {
+  // GET - Obtener una búsqueda específica
+  if (method === 'GET') {
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere ID' });
+    }
+    
     try {
-      const { titulo, area, puesto, lugarResidencia } = req.body;
-
-      if (!titulo?.trim() || !area?.trim() || !puesto?.trim || !lugarResidencia?.trim()) {
-        return res.status(400).json({ error: 'Título, área y lugar de residencia son requeridos' });
+      const doc = await db.collection('busquedas_activas').doc(id as string).get();
+      if (!doc.exists) {
+        return res.status(404).json({ error: 'Búsqueda no encontrada' });
       }
-
-      const docRef = await db.collection('busquedas_activas').add({
-        titulo:          titulo.trim(),
-        area:            area.trim(),
-        puesto:          puesto.trim(),
-        lugarResidencia: lugarResidencia.trim(),
-        creadaPor:       session.user.email,
-        creadaAt:        new Date().toISOString(),
-        activa:          true,
-      });
-
-      console.log('✅ Búsqueda activa creada:', docRef.id, titulo);
-      return res.status(200).json({ success: true, id: docRef.id, message: 'Búsqueda creada exitosamente' });
-    } catch (error: any) {
-      console.error('❌ Error al crear búsqueda:', error);
-      return res.status(500).json({ error: 'Error al crear la búsqueda', details: error.message });
+      return res.status(200).json({ busqueda: { id: doc.id, ...doc.data() } });
+    } catch (error) {
+      return res.status(500).json({ error: 'Error al obtener la búsqueda' });
     }
   }
 
-  // ── DELETE: dar de baja búsqueda ────────────────────────────────────────────
-  if (req.method === 'DELETE') {
+  // POST - Crear nueva búsqueda
+  if (method === 'POST') {
+    const { titulo, area, puesto, lugarResidencia } = req.body;
+    
+    if (!titulo || !area || !puesto || !lugarResidencia) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+    
     try {
-      const id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
-      if (!id) return res.status(400).json({ error: 'Falta el ID de la búsqueda' });
+      const nuevaBusqueda = {
+        titulo,
+        area,
+        puesto,
+        lugarResidencia,
+        activa: true,
+        creadaAt: new Date().toISOString(),
+        creadaPor: session.user.email,
+      };
+      
+      const docRef = await db.collection('busquedas_activas').add(nuevaBusqueda);
+      return res.status(200).json({ 
+        success: true, 
+        id: docRef.id,
+        message: 'Búsqueda creada exitosamente'
+      });
+    } catch (error) {
+      return res.status(500).json({ error: 'Error al crear la búsqueda' });
+    }
+  }
 
-      const doc = await db.collection('busquedas_activas').doc(id).get();
-      if (!doc.exists) return res.status(404).json({ error: 'Búsqueda no encontrada' });
+  // PUT - Actualizar búsqueda
+  if (method === 'PUT') {
+    const { id, titulo, area, puesto, lugarResidencia, activa } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere ID' });
+    }
+    
+    try {
+      const updateData: any = {};
+      if (titulo !== undefined) updateData.titulo = titulo;
+      if (area !== undefined) updateData.area = area;
+      if (puesto !== undefined) updateData.puesto = puesto;
+      if (lugarResidencia !== undefined) updateData.lugarResidencia = lugarResidencia;
+      if (activa !== undefined) updateData.activa = activa;
+      updateData.actualizadaAt = new Date().toISOString();
+      updateData.actualizadaPor = session.user.email;
+      
+      await db.collection('busquedas_activas').doc(id).update(updateData);
+      return res.status(200).json({ success: true, message: 'Búsqueda actualizada' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Error al actualizar la búsqueda' });
+    }
+  }
 
-      // Dar de baja (soft delete): marcar como inactiva en lugar de borrar
-      await db.collection('busquedas_activas').doc(id).update({ activa: false });
-
-      console.log('✅ Búsqueda dada de baja:', id);
-      return res.status(200).json({ success: true, message: 'Búsqueda dada de baja exitosamente' });
-    } catch (error: any) {
-      console.error('❌ Error al dar de baja búsqueda:', error);
-      return res.status(500).json({ error: 'Error al dar de baja la búsqueda', details: error.message });
+  // DELETE - Eliminar (desactivar) búsqueda
+  if (method === 'DELETE') {
+    const { id } = req.query;
+    
+    if (!id) {
+      return res.status(400).json({ error: 'Se requiere ID' });
+    }
+    
+    try {
+      // En lugar de eliminar, marcamos como inactiva
+      await db.collection('busquedas_activas').doc(id as string).update({
+        activa: false,
+        desactivadaAt: new Date().toISOString(),
+        desactivadaPor: session.user.email,
+      });
+      return res.status(200).json({ success: true, message: 'Búsqueda desactivada' });
+    } catch (error) {
+      return res.status(500).json({ error: 'Error al desactivar la búsqueda' });
     }
   }
 

@@ -1,21 +1,21 @@
-// AdminSearchPanel.tsx - Versión con selector de puesto
-
+// components/AdminSearchPanel.tsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Search, MapPin, Briefcase, ChevronRight, Edit2, Check, X } from 'lucide-react';
 import { BusquedaActiva, AREAS, AREAS_PUESTOS } from '@/lib/types';
 
 export const AdminSearchPanel: React.FC = () => {
-  const [busquedas, setBusquedas]   = useState<BusquedaActiva[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [saving, setSaving]         = useState(false);
-  const [showForm, setShowForm]     = useState(false);
-  const [form, setForm]             = useState({ titulo: '', area: '', puesto: '', lugarResidencia: '' });
+  const [busquedas, setBusquedas] = useState<BusquedaActiva[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ titulo: '', area: '', puesto: '', lugarResidencia: '' });
   const [formErrors, setFormErrors] = useState<Partial<typeof form>>({});
 
   const fetchBusquedas = async () => {
     setLoading(true);
     try {
-      const res  = await fetch('/api/active-searches/list');
+      const res = await fetch('/api/active-searches/list');
       const data = await res.json();
       setBusquedas(data.busquedas || []);
     } catch {
@@ -37,7 +37,7 @@ export const AdminSearchPanel: React.FC = () => {
 
     setSaving(true);
     try {
-      const res  = await fetch('/api/active-searches/manage', {
+      const res = await fetch('/api/active-searches/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -58,15 +58,71 @@ export const AdminSearchPanel: React.FC = () => {
     }
   };
 
+  const handleToggleActive = async (b: BusquedaActiva) => {
+    try {
+      const res = await fetch('/api/active-searches/manage', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: b.id, activa: !b.activa }),
+      });
+      if (res.ok) fetchBusquedas();
+      else alert('Error al cambiar el estado');
+    } catch {
+      alert('Error al cambiar el estado');
+    }
+  };
+
   const handleDelete = async (b: BusquedaActiva) => {
     if (!confirm(`¿Dar de baja la búsqueda "${b.titulo}"? Ya no aparecerá en el formulario de carga.`)) return;
     try {
-      const res  = await fetch(`/api/active-searches/manage?id=${b.id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const res = await fetch(`/api/active-searches/manage?id=${b.id}`, { method: 'DELETE' });
       if (res.ok) fetchBusquedas();
-      else alert(data.error || 'Error al dar de baja');
+      else alert('Error al dar de baja');
     } catch {
       alert('Error al dar de baja la búsqueda');
+    }
+  };
+
+  const handleEdit = (b: BusquedaActiva) => {
+    setEditingId(b.id!);
+    setForm({
+      titulo: b.titulo,
+      area: b.area,
+      puesto: b.puesto,
+      lugarResidencia: b.lugarResidencia,
+    });
+    setShowForm(true);
+  };
+
+  const handleUpdate = async () => {
+    const errors: Partial<typeof form> = {};
+    if (!form.titulo.trim())          errors.titulo = 'El título es requerido';
+    if (!form.area.trim())            errors.area = 'El área es requerida';
+    if (!form.puesto.trim())          errors.puesto = 'El puesto es requerido';
+    if (!form.lugarResidencia.trim()) errors.lugarResidencia = 'El lugar de residencia es requerido';
+    if (Object.keys(errors).length) { setFormErrors(errors); return; }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/active-searches/manage', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, ...form }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setForm({ titulo: '', area: '', puesto: '', lugarResidencia: '' });
+        setFormErrors({});
+        setShowForm(false);
+        setEditingId(null);
+        fetchBusquedas();
+      } else {
+        alert(data.error || 'Error al actualizar la búsqueda');
+      }
+    } catch {
+      alert('Error al actualizar la búsqueda');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -74,9 +130,8 @@ export const AdminSearchPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold text-manzur-primary flex items-center gap-2">
             <Search className="w-5 h-5"/>Búsquedas Activas
@@ -90,7 +145,7 @@ export const AdminSearchPanel: React.FC = () => {
             className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-manzur-secondary text-manzur-primary hover:bg-gray-50 transition-colors">
             <RefreshCw className="w-4 h-4"/>
           </button>
-          <button onClick={() => setShowForm(v => !v)}
+          <button onClick={() => { setShowForm(v => !v); setEditingId(null); setForm({ titulo: '', area: '', puesto: '', lugarResidencia: '' }); }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors
               ${showForm
                 ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -101,10 +156,12 @@ export const AdminSearchPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Formulario de nueva búsqueda */}
+      {/* Formulario de nueva/edición búsqueda */}
       {showForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
-          <h3 className="font-semibold text-manzur-primary">Nueva búsqueda activa</h3>
+          <h3 className="font-semibold text-manzur-primary">
+            {editingId ? 'Editar búsqueda' : 'Nueva búsqueda activa'}
+          </h3>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -148,7 +205,7 @@ export const AdminSearchPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Selector de puesto - aparece cuando se selecciona un área */}
+          {/* Selector de puesto */}
           {form.area && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -173,20 +230,20 @@ export const AdminSearchPanel: React.FC = () => {
           )}
 
           <div className="flex justify-end gap-3 pt-1">
-            <button onClick={() => { setShowForm(false); setForm({titulo:'',area:'',puesto:'',lugarResidencia:''}); setFormErrors({}); }}
+            <button onClick={() => { setShowForm(false); setEditingId(null); setForm({titulo:'',area:'',puesto:'',lugarResidencia:''}); setFormErrors({}); }}
               className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               Cancelar
             </button>
-            <button onClick={handleCreate} disabled={saving}
+            <button onClick={editingId ? handleUpdate : handleCreate} disabled={saving}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-manzur-primary hover:bg-manzur-secondary rounded-lg transition-colors disabled:opacity-50">
-              <Plus className="w-4 h-4"/>
-              {saving ? 'Guardando...' : 'Crear búsqueda'}
+              {editingId ? <Check className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
+              {saving ? (editingId ? 'Actualizando...' : 'Guardando...') : (editingId ? 'Actualizar' : 'Crear búsqueda')}
             </button>
           </div>
         </div>
       )}
 
-      {/* Lista de búsquedas - Mostrar también el puesto */}
+      {/* Lista de búsquedas */}
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
       ) : busquedas.length === 0 ? (
@@ -199,14 +256,20 @@ export const AdminSearchPanel: React.FC = () => {
         <div className="space-y-3">
           {busquedas.map(b => (
             <div key={b.id}
-              className="flex items-center justify-between p-4 bg-white border border-manzur-secondary rounded-xl hover:shadow-sm transition-shadow">
+              className={`flex items-center justify-between p-4 border rounded-xl hover:shadow-sm transition-shadow
+                ${b.activa ? 'bg-white border-manzur-secondary' : 'bg-gray-50 border-gray-300 opacity-70'}`}>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{b.titulo}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-gray-900">{b.titulo}</p>
+                  {!b.activa && (
+                    <span className="text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full">Inactiva</span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-500">
                   <span className="flex items-center gap-1">
                     <Briefcase className="w-3.5 h-3.5"/>{b.area}
                   </span>
-                  {(b as any).puesto && (
+                  {b.puesto && (
                     <span className="flex items-center gap-1">
                       <ChevronRight className="w-3.5 h-3.5"/>{b.puesto}
                     </span>
@@ -219,12 +282,29 @@ export const AdminSearchPanel: React.FC = () => {
                   Creada: {new Date(b.creadaAt).toLocaleDateString('es-AR')} por {b.creadaPor}
                 </p>
               </div>
-              <button onClick={() => handleDelete(b)}
-                className="flex items-center gap-2 ml-4 px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors flex-shrink-0"
-                title="Dar de baja esta búsqueda">
-                <Trash2 className="w-4 h-4"/>
-                Dar de baja
-              </button>
+              <div className="flex gap-2 ml-4">
+                <button
+                  onClick={() => handleToggleActive(b)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
+                    ${b.activa 
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300' 
+                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                >
+                  {b.activa ? 'Activa' : 'Desactivar'}
+                </button>
+                <button
+                  onClick={() => handleEdit(b)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5"/>
+                </button>
+                <button
+                  onClick={() => handleDelete(b)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5"/>
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -232,7 +312,8 @@ export const AdminSearchPanel: React.FC = () => {
 
       {busquedas.length > 0 && (
         <p className="text-xs text-gray-400 text-right">
-          {busquedas.length} búsqueda{busquedas.length !== 1 ? 's' : ''} activa{busquedas.length !== 1 ? 's' : ''}
+          {busquedas.filter(b => b.activa).length} activa{busquedas.filter(b => b.activa).length !== 1 ? 's' : ''} | 
+          {busquedas.filter(b => !b.activa).length} inactiva{busquedas.filter(b => !b.activa).length !== 1 ? 's' : ''}
         </p>
       )}
     </div>
