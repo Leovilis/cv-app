@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import {
   Download, Trash2, UserCheck, Calendar, ArrowLeftCircle, AlertTriangle,
-  Trophy, ThumbsDown, RotateCcw, History, Mail, FlaskConical, Brain, FileText, Briefcase
+  Trophy, ThumbsDown, RotateCcw, History, Mail, FlaskConical, Brain, FileText, Briefcase, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { CV } from '@/lib/types';
 import { EXAM_BADGE, RESULTADO_CONFIG } from '@/lib/constants';
@@ -34,33 +34,21 @@ export const CVCard: React.FC<CVCardProps> = ({
   const isScheduling = schedulingCV === cv.id;
   const isDiscarded = cv.estadoSeleccion === 'Descartado' || cv.estadoSeleccion === 'Quitado del Proceso';
   const [showHistory, setShowHistory] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(false);
 
   const isInterviewTab = activeTab === 'entrevistaRRHH' || activeTab === 'entrevistaAreaTecnica';
   const isTerna = activeTab === 'terna';
   const isRRHHTab = activeTab === 'entrevistaRRHH';
   const isAreaTecnicaTab = activeTab === 'entrevistaAreaTecnica';
 
-  // Área mostrada (asignada por admin o la original)
   const areaMostrada = (cv as any).areaAsignada || cv.area || 'No especificada';
 
-  // Formatear fechas
   const formatFecha = (fecha: string | undefined) => {
     if (!fecha) return 'No registrada';
     return new Date(fecha).toLocaleDateString('es-AR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    });
-  };
-
-  const formatFechaHora = (fecha: string | undefined) => {
-    if (!fecha) return 'No registrada';
-    return new Date(fecha).toLocaleString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     });
   };
 
@@ -99,30 +87,20 @@ export const CVCard: React.FC<CVCardProps> = ({
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {hasFisico && (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.fisico.bg} ${EXAM_BADGE.fisico.border} ${EXAM_BADGE.fisico.text}`}>
-            <FlaskConical className="w-3.5 h-3.5"/>
-            {EXAM_BADGE.fisico.label}
+          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.fisico.bg} ${EXAM_BADGE.fisico.border} ${EXAM_BADGE.fisico.text}`}>
+            <FlaskConical className="w-3 h-3"/>
+            <span className="hidden sm:inline">{EXAM_BADGE.fisico.label}</span>
             {cv.examenFisicoFecha && (
-              <span className="font-normal opacity-75">· {formatFecha(cv.examenFisicoFecha)}</span>
-            )}
-            {resFisicoCfg && (
-              <span className={`ml-1 px-1.5 py-0.5 rounded-full border text-xs font-semibold ${resFisicoCfg.bg} ${resFisicoCfg.border} ${resFisicoCfg.text}`}>
-                {resFisicoCfg.icon} {cv.examenFisicoResultado}
-              </span>
+              <span className="font-normal opacity-75 text-xs">{formatFecha(cv.examenFisicoFecha)}</span>
             )}
           </div>
         )}
         {hasPsi && (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.psicotecnico.bg} ${EXAM_BADGE.psicotecnico.border} ${EXAM_BADGE.psicotecnico.text}`}>
-            <Brain className="w-3.5 h-3.5"/>
-            {EXAM_BADGE.psicotecnico.label}
+          <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border text-xs font-semibold ${EXAM_BADGE.psicotecnico.bg} ${EXAM_BADGE.psicotecnico.border} ${EXAM_BADGE.psicotecnico.text}`}>
+            <Brain className="w-3 h-3"/>
+            <span className="hidden sm:inline">{EXAM_BADGE.psicotecnico.label}</span>
             {cv.examenPsicotecnicoFecha && (
-              <span className="font-normal opacity-75">· {formatFecha(cv.examenPsicotecnicoFecha)}</span>
-            )}
-            {resPsiCfg && (
-              <span className={`ml-1 px-1.5 py-0.5 rounded-full border text-xs font-semibold ${resPsiCfg.bg} ${resPsiCfg.border} ${resPsiCfg.text}`}>
-                {resPsiCfg.icon} {cv.examenPsicotecnicoResultado}
-              </span>
+              <span className="font-normal opacity-75 text-xs">{formatFecha(cv.examenPsicotecnicoFecha)}</span>
             )}
           </div>
         )}
@@ -132,314 +110,201 @@ export const CVCard: React.FC<CVCardProps> = ({
 
   return (
     <div className={`border rounded-lg hover:shadow-md transition-shadow ${isDiscarded ? 'border-red-300 bg-red-50/30' : 'border-manzur-secondary'}`}>
-      {/* Banda roja para descartados */}
+      {/* Bandas de alerta */}
       {isDiscarded && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-t-lg text-sm font-semibold">
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-t-lg text-xs sm:text-sm font-semibold">
           <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
-          CANDIDATO NO APTO — {cv.motivoDescarte || (cv as any).motivoQuitadoProceso || 'Descartado del proceso'}
+          <span className="truncate">CANDIDATO NO APTO — {cv.motivoDescarte || (cv as any).motivoQuitadoProceso || 'Descartado del proceso'}</span>
         </div>
       )}
 
-      {/* Banda naranja para repostulaciones */}
       {cv.repostulacionDescartado && !isDiscarded && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-t-lg text-sm font-semibold flex-wrap">
+        <div className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white rounded-t-lg text-xs sm:text-sm font-semibold flex-wrap">
           <AlertTriangle className="w-4 h-4 flex-shrink-0"/>
-          <span>ATENCIÓN: Fue descartado anteriormente</span>
-          <span className="text-xs opacity-90">
-            Motivo: {cv.motivoDescarteAnterior || 'Sin motivo registrado'}
+          <span>ATENCIÓN: Descartado anteriormente</span>
+          <span className="text-xs opacity-90 truncate">
+            {cv.motivoDescarteAnterior || 'Sin motivo'}
           </span>
-          {(cv as any).fechaDescarteAnterior && (
-            <span className="text-xs opacity-75">
-              ({formatFecha((cv as any).fechaDescarteAnterior)})
-            </span>
-          )}
         </div>
       )}
 
-      <div className="p-4 flex items-start justify-between">
-        <div className="flex-1">
-          {/* Nombre y badges */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <p className="font-semibold text-lg">{cv.nombre} {cv.apellido}</p>
-            
-            {/* Fecha de carga real */}
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-              📅 Carga: {formatFecha(cv.uploadedAt)}
-            </span>
-            
-            {tienePuntuacionRRHH && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
-                <Trophy className="w-3 h-3"/> RRHH: {tienePuntuacionRRHH}/10
+      <div className="p-3 sm:p-4">
+        {/* Header con nombre y botón expandir en mobile */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold text-base sm:text-lg truncate">{cv.nombre} {cv.apellido}</p>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
+                📅 {formatFecha(cv.uploadedAt)}
               </span>
-            )}
-            {tienePuntuacionArea && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
-                <Trophy className="w-3 h-3"/> Área Técnica: {tienePuntuacionArea}/10
-              </span>
-            )}
-          </div>
-
-          {/* Datos personales */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
-            <p>DNI: {cv.dni}</p>
-            <p>Teléfono: ({cv.telefonoArea}) {cv.telefonoNumero}</p>
-            <p>Nacimiento: {cv.fechaNacimiento}</p>
-            <p>Formación: {cv.nivelFormacion}</p>
-            {cv.lugarResidencia && <p>📍 Residencia: {cv.lugarResidencia}</p>}
-            <p>Email: {cv.email || cv.uploadedBy}</p>
-          </div>
-
-          {/* Fechas clave */}
-          <div className="mt-3 pt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">📅 Fechas clave del proceso</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <span>📄 Carga inicial:</span>
-                <span className="font-medium text-gray-700">{formatFecha(cv.uploadedAt)}</span>
-              </div>
-              
-              {cv.fechaSeleccion && cv.estadoSeleccion !== 'En Curso' && (
-                <div className="flex items-center gap-1">
-                  <span>🔄 Último cambio:</span>
-                  <span className="font-medium text-gray-700">{formatFecha(cv.fechaSeleccion)}</span>
-                </div>
-              )}
-              
-              {(cv as any).fechaEntrevistaRRHH && (
-                <div className="flex items-center gap-1">
-                  <span>🎯 Entrevista RRHH:</span>
-                  <span className="font-medium text-blue-600">{formatFecha((cv as any).fechaEntrevistaRRHH)}</span>
-                </div>
-              )}
-              
-              {(cv as any).fechaEntrevistaAreaTecnica && (
-                <div className="flex items-center gap-1">
-                  <span>🔬 Entrevista Área Técnica:</span>
-                  <span className="font-medium text-purple-600">{formatFecha((cv as any).fechaEntrevistaAreaTecnica)}</span>
-                </div>
-              )}
-              
-              {cv.estadoSeleccion === 'Descartado' && cv.fechaSeleccion && (
-                <div className="flex items-center gap-1">
-                  <span>❌ Fecha de descarte:</span>
-                  <span className="font-medium text-red-600">{formatFecha(cv.fechaSeleccion)}</span>
-                </div>
-              )}
-              
-              {(cv as any).fechaReactivacion && (
-                <div className="flex items-center gap-1 col-span-2">
-                  <span>🔄 Reactivado:</span>
-                  <span className="font-medium text-amber-600">{formatFecha((cv as any).fechaReactivacion)}</span>
-                  {(cv as any).motivoDescarteAnterior && (
-                    <span className="text-gray-400 ml-1">(previo: {(cv as any).motivoDescarteAnterior})</span>
-                  )}
-                </div>
-              )}
-              
-              {cv.examenFisicoFecha && (
-                <div className="flex items-center gap-1">
-                  <span>💪 Examen físico:</span>
-                  <span className="font-medium text-blue-600">{formatFecha(cv.examenFisicoFecha)}</span>
-                </div>
-              )}
-              
-              {cv.examenPsicotecnicoFecha && (
-                <div className="flex items-center gap-1">
-                  <span>🧠 Examen psicotécnico:</span>
-                  <span className="font-medium text-green-600">{formatFecha(cv.examenPsicotecnicoFecha)}</span>
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* Área y Puesto asignado por el admin */}
-          {cv.puestoSeleccionado && (
-            <div className="mt-3 p-3 rounded-lg border border-green-500 bg-green-50">
-              <div className="flex items-center gap-2 mb-2">
-                <Briefcase className="w-4 h-4 text-green-700"/>
-                <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">
-                  Asignado por Administrador
+            
+            {/* Badges de puntuación en desktop, simplificados en mobile */}
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {tienePuntuacionRRHH && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
+                  <Trophy className="w-3 h-3"/> RRHH: {tienePuntuacionRRHH}/10
                 </span>
-              </div>
-              <p className="text-base font-bold text-gray-900">{cv.puestoSeleccionado}</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-                <p className="text-gray-700">
-                  <span className="font-medium">Área:</span> {areaMostrada}
-                </p>
-                <p className="text-gray-700">
-                  <span className="font-medium">Estado:</span>
-                  <span className={`ml-1 font-semibold ${
-                    cv.estadoSeleccion === 'Seleccionado' ? 'text-green-700' :
-                    cv.estadoSeleccion === 'Descartado' ? 'text-red-700' :
-                    cv.estadoSeleccion === 'Terna Preseleccionados' ? 'text-amber-700' :
-                    cv.estadoSeleccion === 'Entrevista Área Técnica' ? 'text-purple-700' :
-                    cv.estadoSeleccion === 'Entrevista RRHH' ? 'text-blue-700' :
-                    'text-gray-700'
-                  }`}>
-                    {cv.estadoSeleccion || 'En Curso'}
-                  </span>
-                </p>
-              </div>
-              {cv.notasAdmin && (
-                <p className="text-sm text-gray-600 mt-2 pt-2 border-t border-green-200">
-                  📝 {cv.notasAdmin}
-                </p>
               )}
-            </div>
-          )}
-
-          {/* Área original del postulante */}
-          {!cv.puestoSeleccionado && cv.area && (
-            <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-2 mb-1">
-                <Briefcase className="w-4 h-4 text-gray-500"/>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Área de interés (postulante)
+              {tienePuntuacionArea && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
+                  <Trophy className="w-3 h-3"/> AT: {tienePuntuacionArea}/10
                 </span>
-              </div>
-              <p className="text-base font-medium text-gray-800">{cv.area}</p>
-            </div>
-          )}
-
-          {/* Badges de exámenes */}
-          <ExamBadges />
-
-          {/* Notas de exámenes */}
-          {cv.examenFisico && cv.examenFisicoNotas && (
-            <p className="text-xs text-blue-600 mt-1">📋 Físico: {cv.examenFisicoNotas}</p>
-          )}
-          {cv.examenPsicotecnico && cv.examenPsicotecnicoNotas && (
-            <p className="text-xs text-green-600 mt-1">📋 Psicotécnico: {cv.examenPsicotecnicoNotas}</p>
-          )}
-
-          {/* Historial de estados (colapsable) */}
-          {cv.historialEstados && cv.historialEstados.length > 0 && (
-            <div className="mt-2">
-              <button
-                onClick={() => setShowHistory(v => !v)}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <History className="w-3 h-3"/>
-                {showHistory ? 'Ocultar historial' : `Ver historial (${cv.historialEstados.length})`}
-              </button>
-              {showHistory && (
-                <div className="mt-2 space-y-1.5 pl-2 border-l-2 border-gray-200 max-h-40 overflow-y-auto">
-                  {cv.historialEstados.map((h, i) => (
-                    <div key={i} className="text-xs text-gray-500">
-                      <span className="font-medium text-gray-700">{h.estado}</span>
-                      {h.motivo && <span className="text-red-600"> — {h.motivo}</span>}
-                      <span className="ml-1 text-gray-400">{formatFecha(h.fecha)}</span>
-                    </div>
-                  ))}
-                </div>
               )}
             </div>
-          )}
+          </div>
+          
+          {/* Botón expandir/colapsar en mobile */}
+          <button
+            onClick={() => setShowFullDetails(!showFullDetails)}
+            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          >
+            {showFullDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
 
-        {/* ========== BOTONES ========== */}
-        <div className="flex flex-wrap gap-2 ml-4 justify-end max-w-[260px]">
-          {/* Historial */}
-          <button onClick={() => onHistorial(cv)} title="Ver trazabilidad" className="px-3 py-2 text-white text-sm rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors">
-            <History className="w-4 h-4"/>
-          </button>
+        {/* Información básica siempre visible */}
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-xs sm:text-sm text-gray-600">
+          <p className="truncate"><span className="font-medium">DNI:</span> {cv.dni}</p>
+          <p className="truncate"><span className="font-medium">Tel:</span> ({cv.telefonoArea}) {cv.telefonoNumero}</p>
+          {cv.lugarResidencia && <p className="truncate col-span-2 sm:col-span-1"><span className="font-medium">📍</span> {cv.lugarResidencia}</p>}
+        </div>
 
-          {/* Ranking RRHH */}
-          {isRRHHTab && (
-            <button onClick={() => onRanking(cv, 'RRHH')} title="Puntuar entrevista RRHH" className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionRRHH ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
-              <Trophy className="w-4 h-4"/>
+        {/* Detalles expandibles en mobile */}
+        {(showFullDetails || window.innerWidth >= 1024) && (
+          <div className="mt-3 space-y-3">
+            {/* Fechas clave */}
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-2">📅 Fechas clave</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                  <span>📄 Carga:</span>
+                  <span className="font-medium text-gray-700">{formatFecha(cv.uploadedAt)}</span>
+                </div>
+                {(cv as any).fechaEntrevistaRRHH && (
+                  <div className="flex items-center gap-1">
+                    <span>🎯 RRHH:</span>
+                    <span className="font-medium text-blue-600">{formatFecha((cv as any).fechaEntrevistaRRHH)}</span>
+                  </div>
+                )}
+                {(cv as any).fechaEntrevistaAreaTecnica && (
+                  <div className="flex items-center gap-1">
+                    <span>🔬 AT:</span>
+                    <span className="font-medium text-purple-600">{formatFecha((cv as any).fechaEntrevistaAreaTecnica)}</span>
+                  </div>
+                )}
+                {cv.estadoSeleccion === 'Descartado' && cv.fechaSeleccion && (
+                  <div className="flex items-center gap-1">
+                    <span>❌ Descarte:</span>
+                    <span className="font-medium text-red-600">{formatFecha(cv.fechaSeleccion)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Asignación del admin */}
+            {cv.puestoSeleccionado && (
+              <div className={`p-2 sm:p-3 rounded-lg border ${badgeBg}`}>
+                <p className="font-semibold text-sm sm:text-base">{cv.puestoSeleccionado}</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs sm:text-sm">
+                  <span className="text-gray-600">Área: <span className="font-medium">{areaMostrada}</span></span>
+                  <span className="text-gray-600">Estado: <span className={`font-semibold ${badgeTxt}`}>{cv.estadoSeleccion || 'En Curso'}</span></span>
+                </div>
+                {cv.notasAdmin && (
+                  <p className="text-xs text-gray-500 mt-2 pt-1 border-t border-gray-200">📝 {cv.notasAdmin}</p>
+                )}
+              </div>
+            )}
+
+            <ExamBadges />
+          </div>
+        )}
+
+        {/* Botones - scroll horizontal en mobile */}
+        <div className="mt-4 overflow-x-auto pb-2 -mx-3 px-3">
+          <div className="flex gap-2 min-w-max">
+            <button onClick={() => onHistorial(cv)} title="Trazabilidad" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-blue-500 hover:bg-blue-600 transition-colors">
+              <History className="w-4 h-4"/>
             </button>
-          )}
 
-          {/* Ranking Área Técnica */}
-          {isAreaTecnicaTab && (
-            <button onClick={() => onRanking(cv, 'Area Tecnica')} title="Puntuar entrevista Área Técnica" className={`px-3 py-2 text-sm rounded-lg transition-colors font-medium ${tienePuntuacionArea ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
-              <Trophy className="w-4 h-4"/>
+            {isRRHHTab && (
+              <button onClick={() => onRanking(cv, 'RRHH')} title="Puntuar RRHH" className={`px-2 sm:px-3 py-2 text-sm rounded-lg transition-colors ${tienePuntuacionRRHH ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+                <Trophy className="w-4 h-4"/>
+              </button>
+            )}
+
+            {isAreaTecnicaTab && (
+              <button onClick={() => onRanking(cv, 'Area Tecnica')} title="Puntuar AT" className={`px-2 sm:px-3 py-2 text-sm rounded-lg transition-colors ${tienePuntuacionArea ? 'bg-purple-100 border-purple-400 text-purple-800' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}>
+                <Trophy className="w-4 h-4"/>
+              </button>
+            )}
+
+            <button onClick={() => onDownload(cv)} title="Descargar CV" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
+              <Download className="w-4 h-4"/>
             </button>
-          )}
 
-          {/* Descargar CV */}
-          <button onClick={() => onDownload(cv)} title="Descargar CV" className="px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors">
-            <Download className="w-4 h-4"/>
-          </button>
+            {isRRHHTab && (
+              <button onClick={() => onReferences(cv)} title="Referencias" className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.referenciasLaborales ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600'}`}>
+                <FileText className="w-4 h-4"/>
+              </button>
+            )}
 
-          {/* Referencias */}
-          {isRRHHTab && (
-            <button onClick={() => onReferences(cv)} title="Ficha de referencias" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.referenciasLaborales ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
-              <FileText className="w-4 h-4"/>
+            {isInterviewTab && (
+              <button onClick={() => onSchedule(isScheduling ? null : cv.id!)} title="Agendar" className={`px-2 sm:px-3 py-2 text-white text-sm rounded-lg ${isScheduling ? 'bg-purple-800' : 'bg-purple-600 hover:bg-purple-700'}`}>
+                <Calendar className="w-4 h-4"/>
+              </button>
+            )}
+
+            {isTerna && (
+              <>
+                <button onClick={() => onSendMail(cv)} title="Email" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600">
+                  <Mail className="w-4 h-4"/>
+                </button>
+                <button onClick={() => onExam(cv, 'fisico')} title="Ex. Físico" className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.examenFisico ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600'}`}>
+                  <FlaskConical className="w-4 h-4"/>
+                </button>
+                <button onClick={() => onExam(cv, 'psicotecnico')} title="Ex. Psicotécnico" className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.examenPsicotecnico ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-green-300 text-green-600'}`}>
+                  <Brain className="w-4 h-4"/>
+                </button>
+              </>
+            )}
+
+            {activeTab !== 'seleccionados' && (
+              <button onClick={() => { onSchedule(null); onStartSelection(cv.id!); }} title="Gestionar" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700">
+                <UserCheck className="w-4 h-4"/>
+              </button>
+            )}
+
+            {(activeTab === 'entrevistaRRHH' || activeTab === 'entrevistaAreaTecnica' || activeTab === 'terna' || activeTab === 'seleccionados') && (
+              <button onClick={() => onDiscard(cv)} title="Descartar" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-red-500 hover:bg-red-600">
+                <ThumbsDown className="w-4 h-4"/>
+              </button>
+            )}
+
+            {activeTab !== 'todos' && activeTab !== 'descartados' && (
+              <button onClick={() => onQuitProceso(cv)} title="Quitar" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600">
+                <ArrowLeftCircle className="w-4 h-4"/>
+              </button>
+            )}
+
+            {activeTab === 'descartados' && (
+              <button onClick={() => onReactivar(cv)} title="Reactivar" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600">
+                <RotateCcw className="w-4 h-4"/>
+              </button>
+            )}
+
+            <button onClick={() => onDelete(cv)} title="Eliminar" className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600">
+              <Trash2 className="w-4 h-4"/>
             </button>
-          )}
-
-          {/* Agendar entrevista */}
-          {isInterviewTab && (
-            <button onClick={() => onSchedule(isScheduling ? null : cv.id!)} title="Agendar entrevista" className={`px-3 py-2 text-white text-sm rounded-lg transition-colors ${isScheduling ? 'bg-purple-800' : 'bg-purple-600 hover:bg-purple-700'}`}>
-              <Calendar className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Enviar mail */}
-          {isTerna && (
-            <button onClick={() => onSendMail(cv)} title="Enviar email" className="px-3 py-2 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600 transition-colors">
-              <Mail className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Examen físico */}
-          {isTerna && (
-            <button onClick={() => onExam(cv, 'fisico')} title="Examen físico" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenFisico ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-white border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
-              <FlaskConical className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Examen psicotécnico */}
-          {isTerna && (
-            <button onClick={() => onExam(cv, 'psicotecnico')} title="Examen psicotécnico" className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors font-medium ${cv.examenPsicotecnico ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-green-300 text-green-600 hover:bg-green-50'}`}>
-              <Brain className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Gestionar selección - todas excepto seleccionados */}
-          {activeTab !== 'seleccionados' && (
-            <button onClick={() => { onSchedule(null); onStartSelection(cv.id!); }} title="Gestionar selección" className="px-3 py-2 text-white text-sm rounded-lg bg-green-600 hover:bg-green-700 transition-colors">
-              <UserCheck className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Descartar */}
-          {(activeTab === 'entrevistaRRHH' || activeTab === 'entrevistaAreaTecnica' || activeTab === 'terna' || activeTab === 'seleccionados') && (
-            <button onClick={() => onDiscard(cv)} title="Descartar" className="px-3 py-2 text-white text-sm rounded-lg bg-red-500 hover:bg-red-600 transition-colors">
-              <ThumbsDown className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Quitar del proceso */}
-          {activeTab !== 'todos' && activeTab !== 'descartados' && (
-            <button onClick={() => onQuitProceso(cv)} title="Quitar del proceso" className="px-3 py-2 text-white text-sm rounded-lg bg-orange-500 hover:bg-orange-600 transition-colors">
-              <ArrowLeftCircle className="w-4 h-4"/>
-            </button>
-          )}
-
-          {/* Reactivar */}
-          {activeTab === 'descartados' && (
-            <button onClick={() => onReactivar(cv)} title="Reactivar" className="px-3 py-2 text-white text-sm rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors flex items-center gap-1">
-              <RotateCcw className="w-4 h-4"/>
-              <span className="text-xs font-medium">Reactivar</span>
-            </button>
-          )}
-
-          {/* Eliminar */}
-          <button onClick={() => onDelete(cv)} title="Eliminar" className="px-3 py-2 text-white text-sm rounded-lg bg-gray-500 hover:bg-gray-600 transition-colors">
-            <Trash2 className="w-4 h-4"/>
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* Scheduler inline */}
+      {/* Scheduler y Editor */}
       {isScheduling && isInterviewTab && (
         <InterviewScheduler cv={cv} label={schedulerLabel} onClose={() => onSchedule(null)} />
       )}
 
-      {/* Editor de selección */}
       {isEditing && (
         <SelectionEditor
           cv={cv}

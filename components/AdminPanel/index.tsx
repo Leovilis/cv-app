@@ -1,6 +1,6 @@
 // components/AdminPanel/index.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Mail, FlaskConical, Brain, Trophy, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Calendar, Mail, FlaskConical, Brain, Trophy, AlertTriangle, RotateCcw, Menu, X } from 'lucide-react';
 import { CV, ESTADOS_SELECCION, TabType, ExamType, ExamResultado } from '@/lib/types';
 import { TabsNav } from './TabsNav';
 import { FiltersBar } from './FiltersBar';
@@ -17,6 +17,7 @@ type AdminMainTab = 'gestion' | 'busquedas';
 
 export const AdminPanel: React.FC = () => {
   const [activeMainTab, setActiveMainTab] = useState<AdminMainTab>('gestion');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Estados existentes del panel de CVs
   const [cvs, setCvs] = useState<CV[]>([]);
@@ -35,6 +36,11 @@ export const AdminPanel: React.FC = () => {
   const [quitProcesoModal, setQuitProcesoModal] = useState<CV | null>(null);
   const [historialModal, setHistorialModal] = useState<CV | null>(null);
 
+  // Cerrar menú mobile al cambiar de pestaña
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeMainTab]);
+
   // Función para cargar CVs
   const fetchCVs = async () => {
     setLoading(true);
@@ -52,7 +58,7 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => { fetchCVs(); }, [selectedArea, selectedFormacion]);
 
-  // Handlers
+  // Handlers (sin cambios)
   const handleSaveRanking = async (cv: CV, tipo: 'RRHH' | 'Area Tecnica', puntuacion: number, notas: string) => {
     try {
       const response = await fetch('/api/cv/update-ranking', {
@@ -257,39 +263,84 @@ export const AdminPanel: React.FC = () => {
     { id: 'descartados' as TabType, label: 'Descartados / No Aptos', count: descartados.length, accent: 'border-red-500', active: 'text-red-600' },
   ];
 
-  // Extraer el nav a una variable para evitar duplicación
+  // Extraer el nav a una variable para evitar duplicación - VERSIÓN MOBILE RESPONSIVE
   const mainTabsNav = (
-    <div className="flex border-b-2 border-gray-200">
-      <button
-        onClick={() => setActiveMainTab('gestion')}
-        className={`px-6 py-3 font-semibold text-sm transition-colors ${
-          activeMainTab === 'gestion'
-            ? 'border-b-2 border-manzur-primary text-manzur-primary'
-            : 'text-gray-500 hover:text-manzur-primary'
-        }`}
-      >
-        Gestión de Talentos
-      </button>
-      <button
-        onClick={() => setActiveMainTab('busquedas')}
-        className={`px-6 py-3 font-semibold text-sm transition-colors ${
-          activeMainTab === 'busquedas'
-            ? 'border-b-2 border-manzur-primary text-manzur-primary'
-            : 'text-gray-500 hover:text-manzur-primary'
-        }`}
-      >
-        Búsquedas Activas
-      </button>
+    <div className="border-b-2 border-gray-200">
+      {/* Desktop tabs */}
+      <div className="hidden sm:flex">
+        <button
+          onClick={() => setActiveMainTab('gestion')}
+          className={`px-4 sm:px-6 py-3 font-semibold text-sm transition-colors ${
+            activeMainTab === 'gestion'
+              ? 'border-b-2 border-manzur-primary text-manzur-primary'
+              : 'text-gray-500 hover:text-manzur-primary'
+          }`}
+        >
+          Gestión de Talentos
+        </button>
+        <button
+          onClick={() => setActiveMainTab('busquedas')}
+          className={`px-4 sm:px-6 py-3 font-semibold text-sm transition-colors ${
+            activeMainTab === 'busquedas'
+              ? 'border-b-2 border-manzur-primary text-manzur-primary'
+              : 'text-gray-500 hover:text-manzur-primary'
+          }`}
+        >
+          Búsquedas Activas
+        </button>
+      </div>
+
+      {/* Mobile tabs - select dropdown */}
+      <div className="sm:hidden p-3">
+        <div className="relative">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700"
+          >
+            <span className="flex items-center gap-2">
+              {activeMainTab === 'gestion' ? '📋 Gestión de Talentos' : '🔍 Búsquedas Activas'}
+            </span>
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+          
+          {mobileMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+              <button
+                onClick={() => setActiveMainTab('gestion')}
+                className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                  activeMainTab === 'gestion'
+                    ? 'bg-manzur-primary/10 text-manzur-primary font-medium'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                📋 Gestión de Talentos
+              </button>
+              <button
+                onClick={() => setActiveMainTab('busquedas')}
+                className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                  activeMainTab === 'busquedas'
+                    ? 'bg-manzur-primary/10 text-manzur-primary font-medium'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                🔍 Búsquedas Activas
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 
   // Renderizado único
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {mainTabsNav}
 
       {activeMainTab === 'busquedas' ? (
-        <AdminSearchPanel />
+        <div className="px-2 sm:px-0">
+          <AdminSearchPanel />
+        </div>
       ) : (
         <>
           {/* Modales */}
@@ -308,53 +359,61 @@ export const AdminPanel: React.FC = () => {
           {quitProcesoModal && <QuitarProcesoModal cv={quitProcesoModal} onConfirm={(m, n) => handleQuitProceso(quitProcesoModal, m, n)} onCancel={() => setQuitProcesoModal(null)} />}
           {historialModal && <HistorialModal cv={historialModal} onClose={() => setHistorialModal(null)} />}
 
-          {/* Pestañas de estados de CV */}
-          <TabsNav tabs={tabs} activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSelectedPuesto('Todos'); }} />
+          {/* Pestañas de estados de CV - responsive */}
+          <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+            <TabsNav tabs={tabs} activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSelectedPuesto('Todos'); }} />
+          </div>
 
-          {/* Banners contextuales */}
-          {activeTab === 'entrevistaRRHH' && (
-            <p className="text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-              Candidatos en entrevista con RRHH. Usá <Calendar className="w-3.5 h-3.5 inline" /> para agendar. También podés puntuar al candidato con <Trophy className="w-3.5 h-3.5 inline" />.
-            </p>
-          )}
-          {activeTab === 'entrevistaAreaTecnica' && (
-            <p className="text-sm text-purple-700 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
-              Candidatos en entrevista con Área Técnica. Agendá, puntuá y avanzalos a <strong>Terna Preseleccionados</strong>.
-            </p>
-          )}
-          {activeTab === 'terna' && (
-            <p className="text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-              Terna de candidatos. Podés enviarles <Mail className="w-3.5 h-3.5 inline" /> mail, solicitar <FlaskConical className="w-3.5 h-3.5 inline mx-1 text-blue-600" /> examen físico o <Brain className="w-3.5 h-3.5 inline mx-1 text-green-600" /> psicotécnico.
-            </p>
-          )}
-          {activeTab === 'seleccionados' && (
-            <p className="text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-              <Trophy className="w-3.5 h-3.5 inline mr-1" />Candidatos que ingresaron a la empresa.
-            </p>
-          )}
-          {activeTab === 'descartados' && (
-            <p className="text-sm text-red-700 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-              <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Candidatos No Aptos o Quitados del Proceso. Usá <RotateCcw className="w-3.5 h-3.5 inline" /> <strong>Reactivar</strong> para devolverlos.
-            </p>
-          )}
+          {/* Banners contextuales - responsive */}
+          <div className="px-2 sm:px-0">
+            {activeTab === 'entrevistaRRHH' && (
+              <p className="text-xs sm:text-sm text-blue-700 bg-blue-50 px-3 sm:px-4 py-2 rounded-lg border border-blue-200">
+                Candidatos en entrevista con RRHH. Usá <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline" /> para agendar. También podés puntuar al candidato con <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline" />.
+              </p>
+            )}
+            {activeTab === 'entrevistaAreaTecnica' && (
+              <p className="text-xs sm:text-sm text-purple-700 bg-purple-50 px-3 sm:px-4 py-2 rounded-lg border border-purple-200">
+                Candidatos en entrevista con Área Técnica. Agendá, puntuá y avanzalos a <strong>Terna Preseleccionados</strong>.
+              </p>
+            )}
+            {activeTab === 'terna' && (
+              <p className="text-xs sm:text-sm text-amber-700 bg-amber-50 px-3 sm:px-4 py-2 rounded-lg border border-amber-200">
+                Terna de candidatos. Podés enviarles <Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline" /> mail, solicitar <FlaskConical className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mx-0.5 sm:mx-1 text-blue-600" /> examen físico o <Brain className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mx-0.5 sm:mx-1 text-green-600" /> psicotécnico.
+              </p>
+            )}
+            {activeTab === 'seleccionados' && (
+              <p className="text-xs sm:text-sm text-green-700 bg-green-50 px-3 sm:px-4 py-2 rounded-lg border border-green-200">
+                <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mr-1" />Candidatos que ingresaron a la empresa.
+              </p>
+            )}
+            {activeTab === 'descartados' && (
+              <p className="text-xs sm:text-sm text-red-700 bg-red-50 px-3 sm:px-4 py-2 rounded-lg border border-red-200">
+                <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mr-1" />Candidatos No Aptos o Quitados del Proceso. Usá <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline" /> <strong>Reactivar</strong> para devolverlos.
+              </p>
+            )}
+          </div>
 
-          {/* Filtros */}
-          <FiltersBar
-            activeTab={activeTab}
-            selectedArea={selectedArea}
-            onAreaChange={(area) => { setSelectedArea(area); setSelectedPuesto('Todos'); }}
-            selectedFormacion={selectedFormacion}
-            onFormacionChange={setSelectedFormacion}
-            selectedResidencia={selectedResidencia}
-            onResidenciaChange={setSelectedResidencia}
-            selectedPuesto={selectedPuesto}
-            onPuestoChange={setSelectedPuesto}
-            puestosDisponibles={puestosDisponibles}
-            lugaresResidencia={lugaresResidencia}
-            onRefresh={fetchCVs}
-          />
+          {/* Filtros - responsive */}
+          <div className="px-2 sm:px-0">
+            <FiltersBar
+              activeTab={activeTab}
+              selectedArea={selectedArea}
+              onAreaChange={(area) => { setSelectedArea(area); setSelectedPuesto('Todos'); }}
+              selectedFormacion={selectedFormacion}
+              onFormacionChange={setSelectedFormacion}
+              selectedResidencia={selectedResidencia}
+              onResidenciaChange={setSelectedResidencia}
+              selectedPuesto={selectedPuesto}
+              onPuestoChange={setSelectedPuesto}
+              puestosDisponibles={puestosDisponibles}
+              lugaresResidencia={lugaresResidencia}
+              onRefresh={fetchCVs}
+            />
+          </div>
 
-          <div className="text-sm text-manzur-primary">Total: {displayCvs.length} CV{displayCvs.length !== 1 ? 's' : ''}</div>
+          <div className="text-xs sm:text-sm text-manzur-primary px-2 sm:px-0">
+            Total: {displayCvs.length} CV{displayCvs.length !== 1 ? 's' : ''}
+          </div>
 
           {loading ? (
             <p className="text-center text-gray-500 py-8">Cargando...</p>
@@ -362,11 +421,11 @@ export const AdminPanel: React.FC = () => {
             <p className="text-center text-gray-500 py-8">No hay CVs disponibles</p>
           ) : (
             Object.entries(groupedCvs).map(([area, areaCvs]) => (
-              <div key={area} className="mb-8">
-                <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary">
+              <div key={area} className="mb-6 sm:mb-8">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary px-2 sm:px-0">
                   {area} ({areaCvs.length})
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-3 sm:space-y-4">
                   {areaCvs.map(cv => (
                     <CVCard
                       key={cv.id}
