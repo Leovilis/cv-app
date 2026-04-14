@@ -96,7 +96,7 @@ export default function AdminLogin() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="sistemas@ddonpedrosrl.com"
+              // placeholder="sistemas@ddonpedrosrl.com"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-manzur-primary focus:border-manzur-primary transition-all duration-200 outline-none"
               required
               autoFocus
@@ -113,7 +113,7 @@ export default function AdminLogin() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                // placeholder="••••••••"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-manzur-primary focus:border-manzur-primary transition-all duration-200 outline-none pr-12"
                 required
               />
