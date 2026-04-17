@@ -283,10 +283,10 @@ const AdminSearchPanel: React.FC = () => {
                   onClick={() => handleToggleActive(b)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
                     ${b.activa 
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300' 
-                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                >
-                  {b.activa ? 'Activa' : 'Desactivar'}
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300' 
+                      : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'}`}>
+                
+                  {b.activa ? 'Desactivar' : 'Activar'}
                 </button>
                 <button
                   onClick={() => handleEdit(b)}
