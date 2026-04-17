@@ -26,6 +26,13 @@ import { CVCardProps } from "./types";
 import { InterviewScheduler } from "./InterviewScheduler";
 import { SelectionEditor } from "./SelectionEditor";
 
+const getAreaPrincipal = (cv: CV) => {
+  if ((cv as any).areaAsignada) {
+    return (cv as any).areaAsignada;
+  }
+  return cv.area || "No especificada";
+};
+
 export const CVCard: React.FC<CVCardProps> = ({
   cv,
   activeTab,
@@ -60,8 +67,9 @@ export const CVCard: React.FC<CVCardProps> = ({
   const isRRHHTab = activeTab === "entrevistaRRHH";
   const isAreaTecnicaTab = activeTab === "entrevistaAreaTecnica";
 
-  const areaMostrada = (cv as any).areaAsignada || cv.area || "No especificada";
-
+  const areaMostrada = getAreaPrincipal(cv);
+  const tieneAreaAsignada = !!(cv as any).areaAsignada;
+  
   const formatFecha = (fecha: string | undefined) => {
     if (!fecha) return "No registrada";
     return new Date(fecha).toLocaleDateString("es-AR", {
