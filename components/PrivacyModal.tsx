@@ -15,7 +15,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ onAccept, onClose })
   const PoliticaPrivacidad = () => (
     <div className="space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto pr-2">
       <h4 className="font-bold text-lg text-manzur-primary sticky top-0 bg-white py-2">Política de Privacidad</h4>
-      <p><strong>Última actualización:</strong> {new Date().toLocaleDateString('es-AR')}</p>
+      <p><strong>Última actualización:</strong> 7/4/2026</p>
       
       <div className="space-y-3">
         <div>
@@ -75,7 +75,8 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ onAccept, onClose })
 
         <div>
           <h5 className="font-semibold text-manzur-primary mt-3">6. Consentimiento</h5>
-          <p>Al aceptar esta política, usted otorga su consentimiento explícito para el tratamiento de sus datos personales según lo descrito.</p>
+          <p>Al aceptar esta política, usted otorga su consentimiento explícito para el tratamiento de sus datos personales según lo descripto, informado y explicado, y puede ser revocado en cualquier momento conforme la normativa vigente enviando la intención al correo <strong className="text-manzur-primary">rrhhsoft@manzuradministraciones.com</strong>.</p>
+          <p className="mt-2">Asimismo se aclara que <strong>Manzur Administraciones</strong> es el responsable de la administración de la base de datos.</p>
         </div>
       </div>
     </div>
@@ -84,7 +85,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ onAccept, onClose })
   const TerminosCondiciones = () => (
     <div className="space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto pr-2">
       <h4 className="font-bold text-lg text-manzur-primary sticky top-0 bg-white py-2">Términos y Condiciones</h4>
-      <p><strong>Última actualización:</strong> {new Date().toLocaleDateString('es-AR')}</p>
+      <p><strong>Última actualización:</strong> 7/4/2026</p>
       
       <div className="space-y-3">
         <div>
@@ -137,7 +138,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ onAccept, onClose })
 
         <div>
           <h5 className="font-semibold text-manzur-primary mt-3">7. Ley Aplicable</h5>
-          <p>Estos términos se rigen por las leyes de la República Argentina. Cualquier disputa será resuelta por los tribunales de San Salvador de Jujuy.</p>
+          <p>Los términos y condiciones se rigen por las leyes vigentes. Toda controversia será sometida a consideración de los tribunales ordinarios de la ciudad de San Salvador de Jujuy.</p>
         </div>
       </div>
     </div>
