@@ -15,7 +15,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ onAccept, onClose })
   const PoliticaPrivacidad = () => (
     <div className="space-y-4 text-sm text-gray-700 max-h-[60vh] overflow-y-auto pr-2">
       <h4 className="font-bold text-lg text-manzur-primary sticky top-0 bg-white py-2">Política de Privacidad</h4>
-      <p><strong>Última actualización:</strong> 7/4/2026</p>
+      <p><strong>Última actualización:</strong> 29/04/2026</p>
       
       <div className="space-y-3">
         <div>
