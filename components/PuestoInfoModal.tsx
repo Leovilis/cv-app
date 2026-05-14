@@ -7,6 +7,7 @@ import {
   Gift,
   Building2,
   MapPin,
+  SendHorizonalIcon,
 } from "lucide-react";
 import { BusquedaActiva } from "@/lib/types";
 
@@ -69,6 +70,18 @@ export const PuestoInfoModal: React.FC<PuestoInfoModalProps> = ({
               </div>
             </div>
           )}
+          {/* Beneficios */}
+          {busqueda.beneficios && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <SendHorizonalIcon className="w-4 h-4 text-manzur-primary" />
+                Principales responsabilidades
+              </h4>
+              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+                {busqueda.beneficios}
+              </div>
+            </div>
+          )}
 
           {/* Requisitos */}
           {busqueda.requisitos && (
@@ -79,19 +92,6 @@ export const PuestoInfoModal: React.FC<PuestoInfoModalProps> = ({
               </h4>
               <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
                 {busqueda.requisitos}
-              </div>
-            </div>
-          )}
-
-          {/* Beneficios */}
-          {busqueda.beneficios && (
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <Gift className="w-4 h-4 text-manzur-primary" />
-                Beneficios
-              </h4>
-              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
-                {busqueda.beneficios}
               </div>
             </div>
           )}

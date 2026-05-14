@@ -1,18 +1,28 @@
 // components/PuestoModal.tsx
-import React, { useState } from 'react';
-import { X, Save, Briefcase, ListChecks, Gift, FileText } from 'lucide-react';
-import { BusquedaActiva } from '@/lib/types';
+import React, { useState } from "react";
+import { X, Save, Briefcase, ListChecks, Gift, FileText, SendHorizonalIcon } from "lucide-react";
+import { BusquedaActiva } from "@/lib/types";
 
 interface PuestoModalProps {
   busqueda: BusquedaActiva;
-  onSave: (data: { acercaDelPuesto: string; requisitos: string; beneficios: string }) => Promise<void>;
+  onSave: (data: {
+    acercaDelPuesto: string;
+    requisitos: string;
+    beneficios: string;
+  }) => Promise<void>;
   onClose: () => void;
 }
 
-export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onClose }) => {
-  const [acercaDelPuesto, setAcercaDelPuesto] = useState(busqueda.acercaDelPuesto || '');
-  const [requisitos, setRequisitos] = useState(busqueda.requisitos || '');
-  const [beneficios, setBeneficios] = useState(busqueda.beneficios || '');
+export const PuestoModal: React.FC<PuestoModalProps> = ({
+  busqueda,
+  onSave,
+  onClose,
+}) => {
+  const [acercaDelPuesto, setAcercaDelPuesto] = useState(
+    busqueda.acercaDelPuesto || "",
+  );
+  const [requisitos, setRequisitos] = useState(busqueda.requisitos || "");
+  const [beneficios, setBeneficios] = useState(busqueda.beneficios || "");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -21,7 +31,7 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
       await onSave({ acercaDelPuesto, requisitos, beneficios });
       onClose();
     } catch (error) {
-      alert('Error al guardar la información del puesto');
+      alert("Error al guardar la información del puesto");
     } finally {
       setSaving(false);
     }
@@ -30,32 +40,35 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-manzur-primary/10 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-manzur-primary"/>
+              <FileText className="w-5 h-5 text-manzur-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-lg">Acerca del Puesto</h3>
+              <h3 className="font-bold text-gray-900 text-lg">
+                Acerca del Puesto
+              </h3>
               <p className="text-sm text-gray-500">
                 {busqueda.titulo} - {busqueda.area} / {busqueda.puesto}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5"/>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-          
           {/* Descripción del puesto */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-manzur-primary"/>
+              <Briefcase className="w-4 h-4 text-manzur-primary" />
               Descripción del Puesto
             </label>
             <textarea
@@ -69,11 +82,22 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
               Esta información será visible para los postulantes.
             </p>
           </div>
-
+          {/* Beneficios */}
+          {busqueda.beneficios && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <SendHorizonalIcon className="w-4 h-4 text-manzur-primary" />
+                Principales responsabilidades
+              </h4>
+              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+                {busqueda.beneficios}
+              </div>
+            </div>
+          )}
           {/* Requisitos */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <ListChecks className="w-4 h-4 text-manzur-primary"/>
+              <ListChecks className="w-4 h-4 text-manzur-primary" />
               Requisitos del Puesto
             </label>
             <textarea
@@ -120,8 +144,8 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
             disabled={saving}
             className="flex items-center gap-2 px-6 py-2 text-sm font-semibold text-white bg-manzur-primary hover:bg-manzur-secondary rounded-lg transition-colors disabled:opacity-50"
           >
-            <Save className="w-4 h-4"/>
-            {saving ? 'Guardando...' : 'Guardar Información'}
+            <Save className="w-4 h-4" />
+            {saving ? "Guardando..." : "Guardar Información"}
           </button>
         </div>
       </div>

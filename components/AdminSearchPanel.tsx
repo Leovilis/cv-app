@@ -410,6 +410,19 @@ const AdminSearchPanel: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Principales responsabilidades
+                </label>
+                <textarea
+                  value={form.beneficios}
+                  onChange={(e) => setForm({ ...form, beneficios: e.target.value })}
+                  rows={2}
+                  placeholder="• Obra social&#10;• Vacaciones pagas&#10;• Horario flexible"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
+                  disabled={saving}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Requisitos del puesto
                 </label>
                 <textarea
@@ -422,19 +435,7 @@ const AdminSearchPanel: React.FC = () => {
                 />
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Beneficios ofrecidos
-                </label>
-                <textarea
-                  value={form.beneficios}
-                  onChange={(e) => setForm({ ...form, beneficios: e.target.value })}
-                  rows={2}
-                  placeholder="• Obra social&#10;• Vacaciones pagas&#10;• Horario flexible"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
-                  disabled={saving}
-                />
-              </div> */}
+              
 
               {/* Botón de previsualización */}
               {(form.acercaDelPuesto || form.requisitos || form.beneficios) && (
