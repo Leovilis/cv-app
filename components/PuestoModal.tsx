@@ -89,7 +89,7 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
           </div>
 
           {/* Beneficios */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               <Gift className="w-4 h-4 text-manzur-primary"/>
               Beneficios Ofrecidos
@@ -104,7 +104,7 @@ export const PuestoModal: React.FC<PuestoModalProps> = ({ busqueda, onSave, onCl
             <p className="text-xs text-gray-400 mt-1">
               Describa los beneficios adicionales del puesto.
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}

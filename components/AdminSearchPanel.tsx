@@ -422,7 +422,7 @@ const AdminSearchPanel: React.FC = () => {
                 />
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Beneficios ofrecidos
                 </label>
@@ -434,7 +434,7 @@ const AdminSearchPanel: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
                   disabled={saving}
                 />
-              </div>
+              </div> */}
 
               {/* Botón de previsualización */}
               {(form.acercaDelPuesto || form.requisitos || form.beneficios) && (
