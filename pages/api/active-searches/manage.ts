@@ -7,7 +7,6 @@ import { getFirestore } from '@/lib/firebase-admin';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
   
-  // Verificar autenticación y rol de admin
   if (!session || session.user?.email !== 'sistemas@ddonpedrosrl.com') {
     return res.status(401).json({ error: 'No autorizado' });
   }
@@ -35,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // POST - Crear nueva búsqueda
   if (method === 'POST') {
-    const { titulo, area, puesto, lugarResidencia } = req.body;
+    const { titulo, area, puesto, lugarResidencia, acercaDelPuesto, requisitos, beneficios } = req.body;
     
     if (!titulo || !area || !puesto || !lugarResidencia) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -47,25 +46,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         area,
         puesto,
         lugarResidencia,
+        acercaDelPuesto: acercaDelPuesto || '',
+        requisitos: requisitos || '',
+        beneficios: beneficios || '',
         activa: true,
         creadaAt: new Date().toISOString(),
         creadaPor: session.user.email,
       };
       
       const docRef = await db.collection('busquedas_activas').add(nuevaBusqueda);
+      console.log('✅ Búsqueda creada:', docRef.id);
       return res.status(200).json({ 
         success: true, 
         id: docRef.id,
         message: 'Búsqueda creada exitosamente'
       });
     } catch (error) {
+      console.error('❌ Error POST:', error);
       return res.status(500).json({ error: 'Error al crear la búsqueda' });
     }
   }
 
   // PUT - Actualizar búsqueda
   if (method === 'PUT') {
-    const { id, titulo, area, puesto, lugarResidencia, activa } = req.body;
+    const { id, titulo, area, puesto, lugarResidencia, activa, acercaDelPuesto, requisitos, beneficios } = req.body;
     
     if (!id) {
       return res.status(400).json({ error: 'Se requiere ID' });
@@ -78,34 +82,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (puesto !== undefined) updateData.puesto = puesto;
       if (lugarResidencia !== undefined) updateData.lugarResidencia = lugarResidencia;
       if (activa !== undefined) updateData.activa = activa;
+      if (acercaDelPuesto !== undefined) updateData.acercaDelPuesto = acercaDelPuesto;
+      if (requisitos !== undefined) updateData.requisitos = requisitos;
+      if (beneficios !== undefined) updateData.beneficios = beneficios;
       updateData.actualizadaAt = new Date().toISOString();
       updateData.actualizadaPor = session.user.email;
       
       await db.collection('busquedas_activas').doc(id).update(updateData);
+      console.log('✅ Búsqueda actualizada:', id);
       return res.status(200).json({ success: true, message: 'Búsqueda actualizada' });
     } catch (error) {
+      console.error('❌ Error PUT:', error);
       return res.status(500).json({ error: 'Error al actualizar la búsqueda' });
     }
   }
 
-  // DELETE - Eliminar (desactivar) búsqueda
+  // DELETE - Eliminar completamente la búsqueda
   if (method === 'DELETE') {
-    const { id } = req.query;
+    let id = req.query.id as string;
+    
+    if (!id && req.body) {
+      id = req.body.id;
+    }
+    
+    if (Array.isArray(id)) {
+      id = id[0];
+    }
     
     if (!id) {
       return res.status(400).json({ error: 'Se requiere ID' });
     }
     
     try {
-      // En lugar de eliminar, marcamos como inactiva
-      await db.collection('busquedas_activas').doc(id as string).update({
-        activa: false,
-        desactivadaAt: new Date().toISOString(),
-        desactivadaPor: session.user.email,
-      });
-      return res.status(200).json({ success: true, message: 'Búsqueda desactivada' });
+      const docRef = db.collection('busquedas_activas').doc(id);
+      const doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return res.status(404).json({ error: 'Búsqueda no encontrada' });
+      }
+      
+      await docRef.delete();
+      console.log('✅ Búsqueda eliminada:', id);
+      return res.status(200).json({ success: true, message: 'Búsqueda eliminada' });
     } catch (error) {
-      return res.status(500).json({ error: 'Error al desactivar la búsqueda' });
+      console.error('❌ Error DELETE:', error);
+      return res.status(500).json({ error: 'Error al eliminar la búsqueda' });
     }
   }
 
