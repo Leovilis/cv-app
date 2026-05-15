@@ -7,7 +7,12 @@ import { getFirestore } from '@/lib/firebase-admin';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
   
+  console.log('🔍 [manage.ts] Method:', req.method);
+  console.log('🔍 [manage.ts] Session user:', session?.user?.email);
+  
+  // Verificar autenticación y rol de admin
   if (!session || session.user?.email !== 'sistemas@ddonpedrosrl.com') {
+    console.log('❌ [manage.ts] No autorizado');
     return res.status(401).json({ error: 'No autorizado' });
   }
 
@@ -28,13 +33,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       return res.status(200).json({ busqueda: { id: doc.id, ...doc.data() } });
     } catch (error) {
+      console.error('❌ Error GET:', error);
       return res.status(500).json({ error: 'Error al obtener la búsqueda' });
     }
   }
 
   // POST - Crear nueva búsqueda
   if (method === 'POST') {
-    const { titulo, area, puesto, lugarResidencia, acercaDelPuesto, requisitos, beneficios } = req.body;
+    const { 
+      titulo, 
+      area, 
+      puesto, 
+      lugarResidencia, 
+      acercaDelPuesto, 
+      principalesResponsabilidades, 
+      requisitos 
+    } = req.body;
     
     if (!titulo || !area || !puesto || !lugarResidencia) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
@@ -47,8 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         puesto,
         lugarResidencia,
         acercaDelPuesto: acercaDelPuesto || '',
+        principalesResponsabilidades: principalesResponsabilidades || '',
         requisitos: requisitos || '',
-        beneficios: beneficios || '',
         activa: true,
         creadaAt: new Date().toISOString(),
         creadaPor: session.user.email,
@@ -69,7 +83,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // PUT - Actualizar búsqueda
   if (method === 'PUT') {
-    const { id, titulo, area, puesto, lugarResidencia, activa, acercaDelPuesto, requisitos, beneficios } = req.body;
+    const { 
+      id, 
+      titulo, 
+      area, 
+      puesto, 
+      lugarResidencia, 
+      activa,
+      acercaDelPuesto,
+      principalesResponsabilidades,
+      requisitos
+    } = req.body;
     
     if (!id) {
       return res.status(400).json({ error: 'Se requiere ID' });
@@ -83,8 +107,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (lugarResidencia !== undefined) updateData.lugarResidencia = lugarResidencia;
       if (activa !== undefined) updateData.activa = activa;
       if (acercaDelPuesto !== undefined) updateData.acercaDelPuesto = acercaDelPuesto;
+      if (principalesResponsabilidades !== undefined) updateData.principalesResponsabilidades = principalesResponsabilidades;
       if (requisitos !== undefined) updateData.requisitos = requisitos;
-      if (beneficios !== undefined) updateData.beneficios = beneficios;
+      
       updateData.actualizadaAt = new Date().toISOString();
       updateData.actualizadaPor = session.user.email;
       
