@@ -60,7 +60,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   const [selectedPuestoInfo, setSelectedPuestoInfo] =
     useState<BusquedaActiva | null>(null);
 
-  // Determinar si el área y puesto están deshabilitados
+  // Determinar si el área y puesto están deshabilitados (no son requeridos)
   const isAreaPuestoDisabled = postulaBusqueda;
 
   const subAreasDisponibles = formData.area
@@ -122,7 +122,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     if (!formData.lugarResidencia.trim())
       newErrors.lugarResidencia = "El lugar de residencia es requerido";
 
-    // Si NO postula a búsqueda activa, entonces debe seleccionar área y puesto
+    // 🔽 VALIDACIÓN CONDICIONAL: Solo requiere área y puesto si NO postula a búsqueda activa
     if (!postulaBusqueda) {
       if (!formData.area) newErrors.area = "Seleccione un área";
       if (formData.area && !formData.subArea)
@@ -149,7 +149,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       fd.append("fechaNacimiento", formData.fechaNacimiento);
       fd.append("nivelFormacion", formData.nivelFormacion);
 
-      // Si postula a búsqueda activa, no enviamos área y puesto (se tomarán de las búsquedas)
+      // Si postula a búsqueda activa, NO enviamos área y puesto
       if (!postulaBusqueda) {
         fd.append("area", formData.area || "Genérico");
         fd.append("subArea", formData.subArea || "");
@@ -442,7 +442,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         )}
       </div>
 
-      {/* Área + Sub-área - Deshabilitado si postula a búsqueda activa */}
+      {/* Área + Sub-área - Se deshabilita si postula a búsqueda activa */}
       <div
         className={`border rounded-xl overflow-hidden ${isAreaPuestoDisabled ? "border-gray-200 bg-gray-50" : "border-manzur-secondary"}`}
       >
@@ -527,7 +527,9 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
                   </label>
                 ))}
               </div>
-              {errors.subArea && <p className={errorCls}>{errors.subArea}</p>}
+              {errors.subArea && !isAreaPuestoDisabled && (
+                <p className={errorCls}>{errors.subArea}</p>
+              )}
             </div>
           )}
         </div>
