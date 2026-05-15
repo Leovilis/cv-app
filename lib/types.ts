@@ -113,7 +113,7 @@ export interface BusquedaActiva {
   activa: boolean;
   acercaDelPuesto?: string; // Nuevo campo - descripción detallada del puesto
   requisitos?: string; // Nuevo campo - requisitos del puesto
-  beneficios?: string;
+  principalesResponsabilidades?: string;
   creadaAt: string;
   creadaPor: string;
 }
@@ -248,7 +248,7 @@ export const AREAS_PUESTOS: Record<string, string[]> = {
     "ENOLOGO",
     "OBRERO DE VIÑEDOS",
     "SERENO DE HOTEL",
-    "VENDEDOR DE VINOS Y QUESOS",
+    "EJECUTIVO COMERCIAL",
     "ENCARGADO/A DE SALAS",
   ],
   "INDUSTRIA LACTEA": [

@@ -1,5 +1,5 @@
 // components/AdminSearchPanel.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -14,7 +14,7 @@ import {
   FileText,
   Eye,
   ListChecks,
-  Gift,
+  Target,
 } from "lucide-react";
 import { BusquedaActiva, AREAS, AREAS_PUESTOS } from "@/lib/types";
 import { PuestoModal } from "./PuestoModal";
@@ -30,14 +30,15 @@ const AdminSearchPanel: React.FC = () => {
   );
   const [showPreviewModal, setShowPreviewModal] =
     useState<BusquedaActiva | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     titulo: "",
     area: "",
     puesto: "",
     lugarResidencia: "",
     acercaDelPuesto: "",
+    principalesResponsabilidades: "",
     requisitos: "",
-    beneficios: "",
   });
   const [formErrors, setFormErrors] = useState<Partial<typeof form>>({});
 
@@ -57,6 +58,15 @@ const AdminSearchPanel: React.FC = () => {
   useEffect(() => {
     fetchBusquedas();
   }, []);
+
+  // Scroll al formulario cuando se abre en modo edición
+  useEffect(() => {
+    if (showForm && editingId && formRef.current) {
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [showForm, editingId]);
 
   const handleCreate = async () => {
     const errors: Partial<typeof form> = {};
@@ -81,8 +91,8 @@ const AdminSearchPanel: React.FC = () => {
           puesto: form.puesto,
           lugarResidencia: form.lugarResidencia,
           acercaDelPuesto: form.acercaDelPuesto || "",
+          principalesResponsabilidades: form.principalesResponsabilidades || "",
           requisitos: form.requisitos || "",
-          beneficios: form.beneficios || "",
         }),
       });
       const data = await res.json();
@@ -93,11 +103,12 @@ const AdminSearchPanel: React.FC = () => {
           puesto: "",
           lugarResidencia: "",
           acercaDelPuesto: "",
+          principalesResponsabilidades: "",
           requisitos: "",
-          beneficios: "",
         });
         setFormErrors({});
         setShowForm(false);
+        setEditingId(null);
         fetchBusquedas();
       } else {
         alert(data.error || "Error al crear la búsqueda");
@@ -156,8 +167,8 @@ const AdminSearchPanel: React.FC = () => {
       puesto: b.puesto,
       lugarResidencia: b.lugarResidencia,
       acercaDelPuesto: b.acercaDelPuesto || "",
+      principalesResponsabilidades: b.principalesResponsabilidades || "",
       requisitos: b.requisitos || "",
-      beneficios: b.beneficios || "",
     });
     setShowForm(true);
   };
@@ -186,8 +197,8 @@ const AdminSearchPanel: React.FC = () => {
           puesto: form.puesto,
           lugarResidencia: form.lugarResidencia,
           acercaDelPuesto: form.acercaDelPuesto || "",
+          principalesResponsabilidades: form.principalesResponsabilidades || "",
           requisitos: form.requisitos || "",
-          beneficios: form.beneficios || "",
         }),
       });
       const data = await res.json();
@@ -198,8 +209,8 @@ const AdminSearchPanel: React.FC = () => {
           puesto: "",
           lugarResidencia: "",
           acercaDelPuesto: "",
+          principalesResponsabilidades: "",
           requisitos: "",
-          beneficios: "",
         });
         setFormErrors({});
         setShowForm(false);
@@ -217,7 +228,11 @@ const AdminSearchPanel: React.FC = () => {
 
   const handleSavePuestoInfo = async (
     id: string,
-    data: { acercaDelPuesto: string; requisitos: string; beneficios: string },
+    data: {
+      acercaDelPuesto: string;
+      principalesResponsabilidades: string;
+      requisitos: string;
+    },
   ) => {
     try {
       const res = await fetch("/api/active-searches/manage", {
@@ -272,8 +287,8 @@ const AdminSearchPanel: React.FC = () => {
                 puesto: "",
                 lugarResidencia: "",
                 acercaDelPuesto: "",
+                principalesResponsabilidades: "",
                 requisitos: "",
-                beneficios: "",
               });
             }}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors
@@ -291,7 +306,10 @@ const AdminSearchPanel: React.FC = () => {
 
       {/* Formulario de nueva búsqueda / edición */}
       {showForm && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+        <div
+          ref={formRef}
+          className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4"
+        >
           <h3 className="font-semibold text-manzur-primary">
             {editingId ? "Editar búsqueda" : "Nueva búsqueda activa"}
           </h3>
@@ -392,7 +410,7 @@ const AdminSearchPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Sección "Acerca del Puesto" - siempre visible en el formulario */}
+          {/* Sección "Acerca del Puesto" */}
           <div className="border-t border-blue-200 pt-4 mt-2">
             <h4 className="font-medium text-manzur-primary mb-3 flex items-center gap-2">
               <FileText className="w-4 h-4" />
@@ -416,23 +434,31 @@ const AdminSearchPanel: React.FC = () => {
                 />
               </div>
 
+              {/* Principales responsabilidades (antes beneficios) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Target className="inline w-3.5 h-3.5 mr-1" />
                   Principales responsabilidades
                 </label>
                 <textarea
-                  value={form.beneficios}
+                  value={form.principalesResponsabilidades}
                   onChange={(e) =>
-                    setForm({ ...form, beneficios: e.target.value })
+                    setForm({
+                      ...form,
+                      principalesResponsabilidades: e.target.value,
+                    })
                   }
-                  rows={2}
-                  placeholder="• Obra social&#10;• Vacaciones pagas&#10;• Horario flexible"
+                  rows={3}
+                  placeholder="• Gestionar el área de...&#10;• Coordinar reuniones...&#10;• Elaborar informes...&#10;• Supervisar equipos..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
                   disabled={saving}
                 />
               </div>
+
+              {/* Requisitos */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <ListChecks className="inline w-3.5 h-3.5 mr-1" />
                   Requisitos del puesto
                 </label>
                 <textarea
@@ -448,7 +474,9 @@ const AdminSearchPanel: React.FC = () => {
               </div>
 
               {/* Botón de previsualización */}
-              {(form.acercaDelPuesto || form.requisitos || form.beneficios) && (
+              {(form.acercaDelPuesto ||
+                form.principalesResponsabilidades ||
+                form.requisitos) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -459,8 +487,9 @@ const AdminSearchPanel: React.FC = () => {
                       puesto: form.puesto,
                       lugarResidencia: form.lugarResidencia,
                       acercaDelPuesto: form.acercaDelPuesto,
+                      principalesResponsabilidades:
+                        form.principalesResponsabilidades,
                       requisitos: form.requisitos,
-                      beneficios: form.beneficios,
                       creadaPor: "",
                       creadaAt: new Date().toISOString(),
                       activa: true,
@@ -486,8 +515,8 @@ const AdminSearchPanel: React.FC = () => {
                   puesto: "",
                   lugarResidencia: "",
                   acercaDelPuesto: "",
+                  principalesResponsabilidades: "",
                   requisitos: "",
-                  beneficios: "",
                 });
                 setFormErrors({});
               }}
@@ -576,11 +605,11 @@ const AdminSearchPanel: React.FC = () => {
                   <Eye className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => setShowPuestoModal(b)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 border border-indigo-300 transition-colors"
-                  title="Editar información del puesto"
+                  onClick={() => handleEdit(b)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
+                  title="Editar búsqueda"
                 >
-                  <FileText className="w-3.5 h-3.5" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleToggleActive(b)}
@@ -592,12 +621,6 @@ const AdminSearchPanel: React.FC = () => {
                     }`}
                 >
                   {b.activa ? "Desactivar" : "Activar"}
-                </button>
-                <button
-                  onClick={() => handleEdit(b)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(b)}
@@ -618,15 +641,6 @@ const AdminSearchPanel: React.FC = () => {
           {busquedas.filter((b) => !b.activa).length} inactiva
           {busquedas.filter((b) => !b.activa).length !== 1 ? "s" : ""}
         </p>
-      )}
-
-      {/* Modal para editar información del puesto */}
-      {showPuestoModal && (
-        <PuestoModal
-          busqueda={showPuestoModal}
-          onSave={(data) => handleSavePuestoInfo(showPuestoModal.id!, data)}
-          onClose={() => setShowPuestoModal(null)}
-        />
       )}
 
       {/* Modal de previsualización para postulantes */}
@@ -678,17 +692,19 @@ const AdminSearchPanel: React.FC = () => {
                   </div>
                 </div>
               )}
-              {showPreviewModal.beneficios && (
+
+              {showPreviewModal.principalesResponsabilidades && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-manzur-primary" />
+                    <Target className="w-4 h-4 text-manzur-primary" />
                     Principales responsabilidades
                   </h4>
                   <div className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl">
-                    {showPreviewModal.beneficios}
+                    {showPreviewModal.principalesResponsabilidades}
                   </div>
                 </div>
               )}
+
               {showPreviewModal.requisitos && (
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
@@ -702,8 +718,8 @@ const AdminSearchPanel: React.FC = () => {
               )}
 
               {!showPreviewModal.acercaDelPuesto &&
-                !showPreviewModal.requisitos &&
-                !showPreviewModal.beneficios && (
+                !showPreviewModal.principalesResponsabilidades &&
+                !showPreviewModal.requisitos && (
                   <div className="text-center py-8 text-gray-500">
                     <p>
                       No hay información detallada disponible para este puesto.
@@ -729,9 +745,5 @@ const AdminSearchPanel: React.FC = () => {
     </div>
   );
 };
-
-// Necesitas importar ListChecks y Gift en los imports
-// Asegúrate de tenerlos:
-// import { ListChecks, Gift } from "lucide-react";
 
 export default AdminSearchPanel;
