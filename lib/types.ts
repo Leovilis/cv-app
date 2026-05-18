@@ -22,6 +22,7 @@ export interface CV {
   cvUrl: string;
   uploadedBy: string;
   uploadedAt: string;
+  
 
   // Búsquedas activas
   busquedasPostuladas?: string[];
