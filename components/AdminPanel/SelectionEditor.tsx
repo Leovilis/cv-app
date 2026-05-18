@@ -1,6 +1,6 @@
 // components/AdminPanel/SelectionEditor.tsx
 import React, { useState } from "react";
-import { Check, X, Info } from "lucide-react";
+import { Check, X, Info, Briefcase } from "lucide-react";
 import { AREAS, AREAS_PUESTOS } from "@/lib/types";
 import { CV } from "@/lib/types";
 
@@ -22,9 +22,27 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
   onSave,
   onCancel,
 }) => {
-  // Obtener el área y puesto originales del candidato (solo para mostrar, no obligatorio)
-  const areaOriginal = cv.area || "";
-  const puestoOriginal = cv.subArea || "";
+  // Obtener información de la búsqueda activa seleccionada (si existe)
+  const busquedaInfo =
+    cv.busquedasInfo && cv.busquedasInfo.length > 0
+      ? cv.busquedasInfo[0]
+      : null;
+  const vieneDeBusquedaActiva =
+    busquedaInfo !== null && !cv.area && !cv.subArea;
+
+  // Obtener el área y puesto según el origen
+  let areaOriginal = "";
+  let puestoOriginal = "";
+
+  if (vieneDeBusquedaActiva) {
+    // Viene de búsqueda activa - mostrar el puesto de la búsqueda
+    areaOriginal = busquedaInfo.area || "";
+    puestoOriginal = busquedaInfo.puesto || "";
+  } else {
+    // Viene de selección manual
+    areaOriginal = cv.area || "";
+    puestoOriginal = cv.subArea || "";
+  }
 
   // Determinar el área inicial (si tiene asignación previa del admin, usarla)
   const areaInicial = (cv as any).areaAsignada || "";
@@ -61,21 +79,49 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
         Gestionar Proceso de Selección
       </h4>
 
-      {/* Mostrar información de la postulación original si existe (solo informativo) */}
-      {areaOriginal && puestoOriginal && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      {/* Mostrar información de la postulación original del candidato */}
+      {(areaOriginal || puestoOriginal) && (
+        <div
+          className="mb-4 p-3 rounded-lg border"
+          style={{
+            backgroundColor: vieneDeBusquedaActiva ? "#fef3c7" : "#dbeafe",
+            borderColor: vieneDeBusquedaActiva ? "#f59e0b" : "#3b82f6",
+          }}
+        >
           <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <div className="text-sm">
-              <p className="font-medium text-blue-800">
-                Postulación original del candidato:
+            <Briefcase
+              className="w-4 h-4 flex-shrink-0"
+              style={{
+                color: vieneDeBusquedaActiva ? "#d97706" : "#2563eb",
+              }}
+            />
+            <div className="text-sm flex-1">
+              <p
+                className="font-medium"
+                style={{
+                  color: vieneDeBusquedaActiva ? "#92400e" : "#1e40af",
+                }}
+              >
+                {vieneDeBusquedaActiva
+                  ? "📌 Postulación vía búsqueda activa:"
+                  : "📋 Postulación manual:"}
               </p>
-              <p className="text-blue-700">
+              <p
+                style={{
+                  color: vieneDeBusquedaActiva ? "#78350f" : "#1e3a8a",
+                }}
+              >
                 <span className="font-medium">Área:</span> {areaOriginal} |
                 <span className="font-medium ml-2">Puesto:</span>{" "}
                 {puestoOriginal}
               </p>
-              <p className="text-xs text-blue-500 mt-1">
+              {vieneDeBusquedaActiva && busquedaInfo?.titulo && (
+                <p className="text-xs mt-1" style={{ color: "#78350f" }}>
+                  <span className="font-medium">Búsqueda:</span>{" "}
+                  {busquedaInfo.titulo}
+                </p>
+              )}
+              <p className="text-xs mt-1 opacity-75">
                 El admin puede asignar un área/puesto diferente si lo requiere
               </p>
             </div>
@@ -84,28 +130,33 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
       )}
 
       <div className="space-y-3">
-        {/* Área */}
+        {/* Área - NO obligatorio */}
         <div>
-          <label className="block text-sm font-medium mb-1">Área</label>
+          <label className="block text-sm font-medium mb-1">
+            Área (opcional)
+          </label>
           <select
             value={areaSelec}
             onChange={(e) => handleAreaChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option value="">Seleccione un área</option>
+            <option value="">-- Sin asignar --</option>
             {AREAS.map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
             ))}
           </select>
+          <p className="text-xs text-gray-400 mt-1">
+            Si el candidato viene de una búsqueda activa, puede dejar vacío
+          </p>
         </div>
 
-        {/* Puestos */}
+        {/* Puestos - NO obligatorio */}
         {areaSelec && (
           <div>
             <label className="block text-sm font-medium mb-1">
-              Puesto/s
+              Puesto/s (opcional)
               {puestosSelec.length > 0 && (
                 <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 border border-green-300 rounded-full px-2 py-0.5">
                   {puestosSelec.length} seleccionado
@@ -167,6 +218,7 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
             onChange={(e) => setNotas(e.target.value)}
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            placeholder="Observaciones sobre el candidato..."
           />
         </div>
 

@@ -26,7 +26,13 @@ export interface CV {
 
   // Búsquedas activas
   busquedasPostuladas?: string[];
-  busquedasInfo?: Array<{ id: string; titulo: string; puesto: string }>;
+  busquedasInfo?: Array<{ 
+  id: string; 
+  titulo: string; 
+  area: string; 
+  puesto: string; 
+  lugarResidencia?: string; 
+}>;
 
   // Selección (gestionado por admin)
   puestoSeleccionado?: string;
