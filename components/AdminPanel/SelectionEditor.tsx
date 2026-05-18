@@ -2,7 +2,19 @@
 import React, { useState } from "react";
 import { Check, X, Info } from "lucide-react";
 import { AREAS, AREAS_PUESTOS } from "@/lib/types";
-import { SelectionEditorProps } from "./types";
+import { CV } from "@/lib/types";
+
+interface SelectionEditorProps {
+  cv: CV;
+  availableEstados: string[];
+  onSave: (data: {
+    puesto: string;
+    estado: string;
+    notas: string;
+    area: string;
+  }) => void;
+  onCancel: () => void;
+}
 
 export const SelectionEditor: React.FC<SelectionEditorProps> = ({
   cv,
@@ -10,12 +22,12 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
   onSave,
   onCancel,
 }) => {
-  // Obtener el área y puesto originales del candidato (cuando no usó búsqueda activa)
+  // Obtener el área y puesto originales del candidato (solo para mostrar, no obligatorio)
   const areaOriginal = cv.area || "";
   const puestoOriginal = cv.subArea || "";
 
-  // Área seleccionada por el admin (prioriza asignación previa)
-  const areaInicial = (cv as any).areaAsignada || cv.area || "";
+  // Determinar el área inicial (si tiene asignación previa del admin, usarla)
+  const areaInicial = (cv as any).areaAsignada || "";
 
   const puestosIniciales = cv.puestoSeleccionado
     ? cv.puestoSeleccionado
@@ -30,7 +42,6 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
     cv.estadoSeleccion || availableEstados[0] || "En Curso",
   );
   const [notas, setNotas] = useState(cv.notasAdmin || "");
-  const [usarPostulacionOriginal, setUsarPostulacionOriginal] = useState(false);
 
   const puestosDeArea = areaSelec ? AREAS_PUESTOS[areaSelec] || [] : [];
 
@@ -42,15 +53,6 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
   const handleAreaChange = (nuevaArea: string) => {
     setAreaSelec(nuevaArea);
     setPuestosSelec([]);
-    setUsarPostulacionOriginal(false);
-  };
-
-  const usarPostulacion = () => {
-    if (areaOriginal && puestoOriginal) {
-      setAreaSelec(areaOriginal);
-      setPuestosSelec([puestoOriginal]);
-      setUsarPostulacionOriginal(true);
-    }
   };
 
   return (
@@ -59,7 +61,7 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
         Gestionar Proceso de Selección
       </h4>
 
-      {/* Mostrar información de la postulación original si existe */}
+      {/* Mostrar información de la postulación original si existe (solo informativo) */}
       {areaOriginal && puestoOriginal && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-2">
@@ -73,12 +75,9 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
                 <span className="font-medium ml-2">Puesto:</span>{" "}
                 {puestoOriginal}
               </p>
-              <button
-                onClick={usarPostulacion}
-                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-              >
-                Usar esta postulación
-              </button>
+              <p className="text-xs text-blue-500 mt-1">
+                El admin puede asignar un área/puesto diferente si lo requiere
+              </p>
             </div>
           </div>
         </div>
@@ -87,7 +86,7 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
       <div className="space-y-3">
         {/* Área */}
         <div>
-          <label className="block text-sm font-medium mb-1">Área *</label>
+          <label className="block text-sm font-medium mb-1">Área</label>
           <select
             value={areaSelec}
             onChange={(e) => handleAreaChange(e.target.value)}
@@ -100,18 +99,13 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
               </option>
             ))}
           </select>
-          {usarPostulacionOriginal && (
-            <p className="text-xs text-green-600 mt-1">
-              ✓ Usando área de la postulación original
-            </p>
-          )}
         </div>
 
         {/* Puestos */}
         {areaSelec && (
           <div>
             <label className="block text-sm font-medium mb-1">
-              Puesto/s *
+              Puesto/s
               {puestosSelec.length > 0 && (
                 <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 border border-green-300 rounded-full px-2 py-0.5">
                   {puestosSelec.length} seleccionado
@@ -144,11 +138,6 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
                 </label>
               ))}
             </div>
-            {puestosSelec.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">
-                Seleccioná al menos un puesto
-              </p>
-            )}
           </div>
         )}
 
@@ -178,7 +167,6 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
             onChange={(e) => setNotas(e.target.value)}
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            placeholder="Observaciones sobre el candidato..."
           />
         </div>
 
@@ -186,14 +174,6 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
         <div className="flex gap-2">
           <button
             onClick={() => {
-              if (!areaSelec) {
-                alert("Seleccioná un área");
-                return;
-              }
-              if (puestosSelec.length === 0) {
-                alert("Seleccioná al menos un puesto");
-                return;
-              }
               onSave({
                 puesto: puestosSelec.join(", "),
                 estado,
