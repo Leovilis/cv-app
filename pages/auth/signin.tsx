@@ -94,8 +94,8 @@ export default function SignIn() {
 
         <div className="mt-6 pt-6 border-t border-gray-100">
           <p className="text-xs text-gray-500 text-center">
-            Al iniciar sesión, aceptas nuestros{' '}
-            <p className="text-manzur-primary hover:underline">Términos</p> y{' '}
+            Al iniciar sesión, aceptas nuestros 
+            <p className="text-manzur-primary hover:underline">Términos</p> y
             <p className="text-manzur-primary hover:underline">Política de Privacidad</p>
           </p>
         </div>
