@@ -256,7 +256,7 @@ export const AREAS_PUESTOS: Record<string, string[]> = {
     "OBRERO DE VIÑEDOS",
     "SERENO DE HOTEL",
     "EJECUTIVO COMERCIAL",
-    "ENCARGADO/A DE SALAS",
+    "ENCARGADO/A DE RESTAURANTE",
   ],
   "INDUSTRIA LACTEA": [
     "RESPONSABLE DE PLANTA",
