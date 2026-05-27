@@ -22,17 +22,18 @@ export interface CV {
   cvUrl: string;
   uploadedBy: string;
   uploadedAt: string;
-  
+  fechaUltimaRevision?: string; // Fecha de última revisión por admin
+  revisadoPor?: string; // Email del admin que lo revisó
 
   // Búsquedas activas
   busquedasPostuladas?: string[];
-  busquedasInfo?: Array<{ 
-  id: string; 
-  titulo: string; 
-  area: string; 
-  puesto: string; 
-  lugarResidencia?: string; 
-}>;
+  busquedasInfo?: Array<{
+    id: string;
+    titulo: string;
+    area: string;
+    puesto: string;
+    lugarResidencia?: string;
+  }>;
 
   // Selección (gestionado por admin)
   puestoSeleccionado?: string;

@@ -349,6 +349,17 @@ export const AdminPanel: React.FC = () => {
     window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
   };
 
+  const handleRegistrarRevision = async (cvId: string) => {
+    try {
+      await fetch("/api/cv/update-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cvId }),
+      });
+    } catch (error) {
+      console.error("Error al registrar revisión:", error);
+    }
+  };
   // Filtros y cálculos para CVs
   const base = (list: CV[]) =>
     list.filter((cv) => {
@@ -799,6 +810,7 @@ export const AdminPanel: React.FC = () => {
                             }
                             onQuitProceso={setQuitProcesoModal}
                             onHistorial={setHistorialModal}
+                            onRegistrarRevision={handleRegistrarRevision}
                           />
                         </div>
                       </div>

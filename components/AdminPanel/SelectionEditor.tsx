@@ -230,7 +230,7 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
                 puesto: puestosSelec.join(", "),
                 estado,
                 notas,
-                area: areaSelec,
+                area: areaSelec, // Asegurar que se pasa el área seleccionada
               });
             }}
             className="flex items-center gap-2 px-4 py-2 text-white rounded-lg bg-green-600 hover:bg-green-700"

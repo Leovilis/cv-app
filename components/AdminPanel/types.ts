@@ -21,6 +21,7 @@ export interface CVCardProps {
   onRanking: (cv: CV, tipo: 'RRHH' | 'Area Tecnica') => void;
   onQuitProceso: (cv: CV) => void;
   onHistorial: (cv: CV) => void;
+  onRegistrarRevision?: (cvId: string) => Promise<void>;
 }
 
 // Props del componente TabsNav

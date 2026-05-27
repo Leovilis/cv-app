@@ -20,7 +20,7 @@ import {
   ChevronUp,
   Bookmark,
 } from "lucide-react";
-import { CV } from "@/lib/types";
+import { CV, AREAS_PUESTOS } from "@/lib/types";
 import { EXAM_BADGE, RESULTADO_CONFIG } from "@/lib/constants";
 import { CVCardProps } from "./types";
 import { InterviewScheduler } from "./InterviewScheduler";
@@ -30,7 +30,22 @@ const getAreaPrincipal = (cv: CV) => {
   if ((cv as any).areaAsignada) {
     return (cv as any).areaAsignada;
   }
-  return cv.area || "No especificada";
+  if (cv.puestoSeleccionado) {
+    const puestosList = cv.puestoSeleccionado.split(",").map((p) => p.trim());
+    for (const [areaName, puestos] of Object.entries(AREAS_PUESTOS)) {
+      if (puestosList.some((p) => puestos.includes(p))) {
+        return areaName;
+      }
+    }
+  }
+  if (
+    cv.busquedasInfo &&
+    cv.busquedasInfo.length > 0 &&
+    cv.busquedasInfo[0].area
+  ) {
+    return cv.busquedasInfo[0].area;
+  }
+  return cv.area || "Sin área";
 };
 
 export const CVCard: React.FC<CVCardProps> = ({
@@ -52,13 +67,13 @@ export const CVCard: React.FC<CVCardProps> = ({
   onRanking,
   onQuitProceso,
   onHistorial,
+  onRegistrarRevision,
 }) => {
   const isEditing = editingCV === cv.id;
   const isScheduling = schedulingCV === cv.id;
   const isDiscarded =
     cv.estadoSeleccion === "Descartado" ||
     cv.estadoSeleccion === "Quitado del Proceso";
-  const [showHistory, setShowHistory] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
 
   const isInterviewTab =
@@ -68,8 +83,7 @@ export const CVCard: React.FC<CVCardProps> = ({
   const isAreaTecnicaTab = activeTab === "entrevistaAreaTecnica";
 
   const areaMostrada = getAreaPrincipal(cv);
-  const tieneAreaAsignada = !!(cv as any).areaAsignada;
-  
+
   const formatFecha = (fecha: string | undefined) => {
     if (!fecha) return "No registrada";
     return new Date(fecha).toLocaleDateString("es-AR", {
@@ -79,7 +93,11 @@ export const CVCard: React.FC<CVCardProps> = ({
     });
   };
 
-  // Reemplazar la función handleSendSemetraMail con esta versión
+  const handleRegistrarRevision = async () => {
+    if (onRegistrarRevision) {
+      await onRegistrarRevision(cv.id!);
+    }
+  };
 
   const handleSendSemetraMail = () => {
     const empresa = "";
@@ -169,12 +187,6 @@ Desde ya muchas gracias. Saludos!`;
     const hasFisico = cv.examenFisico;
     const hasPsi = cv.examenPsicotecnico;
     if (!hasFisico && !hasPsi) return null;
-    const resFisicoCfg = cv.examenFisicoResultado
-      ? RESULTADO_CONFIG[cv.examenFisicoResultado]
-      : null;
-    const resPsiCfg = cv.examenPsicotecnicoResultado
-      ? RESULTADO_CONFIG[cv.examenPsicotecnicoResultado]
-      : null;
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {hasFisico && (
@@ -213,7 +225,6 @@ Desde ya muchas gracias. Saludos!`;
     <div
       className={`border rounded-lg hover:shadow-md transition-shadow ${isDiscarded ? "border-red-300 bg-red-50/30" : "border-manzur-secondary"}`}
     >
-      {/* Bandas de alerta */}
       {isDiscarded && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-t-lg text-xs sm:text-sm font-semibold">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -237,19 +248,12 @@ Desde ya muchas gracias. Saludos!`;
       )}
 
       <div className="p-3 sm:p-4">
-        {/* Header con nombre y botón expandir en mobile */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-base sm:text-lg truncate">
-                {cv.nombre} {cv.apellido}
-              </p>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 whitespace-nowrap">
-                📅 {formatFecha(cv.uploadedAt)}
-              </span>
-            </div>
+            <p className="font-semibold text-base sm:text-lg truncate">
+              {cv.nombre} {cv.apellido}
+            </p>
 
-            {/* Badges de puntuación en desktop, simplificados en mobile */}
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {tienePuntuacionRRHH && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
@@ -264,7 +268,6 @@ Desde ya muchas gracias. Saludos!`;
             </div>
           </div>
 
-          {/* Botón expandir/colapsar en mobile */}
           <button
             onClick={() => setShowFullDetails(!showFullDetails)}
             className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
@@ -277,7 +280,7 @@ Desde ya muchas gracias. Saludos!`;
           </button>
         </div>
 
-        {/* Información básica siempre visible */}
+        {/* Información básica */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-xs sm:text-sm text-gray-600">
           <p className="truncate">
             <span className="font-medium">DNI:</span> {cv.dni}
@@ -287,16 +290,14 @@ Desde ya muchas gracias. Saludos!`;
             {cv.telefonoNumero}
           </p>
           {cv.lugarResidencia && (
-            <p className="truncate col-span-2 sm:col-span-1">
+            <p className="truncate col-span-2">
               <span className="font-medium">📍</span> {cv.lugarResidencia}
             </p>
           )}
         </div>
 
-        {/* Detalles expandibles en mobile */}
         {(showFullDetails || window.innerWidth >= 1024) && (
           <div className="mt-3 space-y-3">
-            {/* Fechas clave */}
             <div className="pt-2 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 mb-2">
                 📅 Fechas clave
@@ -308,6 +309,21 @@ Desde ya muchas gracias. Saludos!`;
                     {formatFecha(cv.uploadedAt)}
                   </span>
                 </div>
+
+                {cv.fechaUltimaRevision && (
+                  <div className="flex items-center gap-1">
+                    <span>👁️ Revisión:</span>
+                    <span className="font-medium text-green-600">
+                      {formatFecha(cv.fechaUltimaRevision)}
+                    </span>
+                    {cv.revisadoPor && (
+                      <span className="text-xs text-gray-400">
+                        por {cv.revisadoPor}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {(cv as any).fechaEntrevistaRRHH && (
                   <div className="flex items-center gap-1">
                     <span>🎯 RRHH:</span>
@@ -316,6 +332,7 @@ Desde ya muchas gracias. Saludos!`;
                     </span>
                   </div>
                 )}
+
                 {(cv as any).fechaEntrevistaAreaTecnica && (
                   <div className="flex items-center gap-1">
                     <span>🔬 AT:</span>
@@ -324,6 +341,7 @@ Desde ya muchas gracias. Saludos!`;
                     </span>
                   </div>
                 )}
+
                 {cv.estadoSeleccion === "Descartado" && cv.fechaSeleccion && (
                   <div className="flex items-center gap-1">
                     <span>❌ Descarte:</span>
@@ -335,7 +353,6 @@ Desde ya muchas gracias. Saludos!`;
               </div>
             </div>
 
-            {/* Asignación del admin */}
             {cv.puestoSeleccionado && (
               <div className={`p-2 sm:p-3 rounded-lg border ${badgeBg}`}>
                 <p className="font-semibold text-sm sm:text-base">
@@ -364,7 +381,7 @@ Desde ya muchas gracias. Saludos!`;
           </div>
         )}
 
-        {/* Botones - scroll horizontal en mobile */}
+        {/* Botones */}
         <div className="mt-4 overflow-x-auto pb-2 -mx-3 px-3">
           <div className="flex gap-2 min-w-max">
             <button
@@ -396,7 +413,10 @@ Desde ya muchas gracias. Saludos!`;
             )}
 
             <button
-              onClick={() => onDownload(cv)}
+              onClick={() => {
+                handleRegistrarRevision();
+                onDownload(cv);
+              }}
               title="Descargar CV"
               className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors"
             >
@@ -405,7 +425,10 @@ Desde ya muchas gracias. Saludos!`;
 
             {isRRHHTab && (
               <button
-                onClick={() => onReferences(cv)}
+                onClick={() => {
+                  handleRegistrarRevision();
+                  onReferences(cv);
+                }}
                 title="Referencias"
                 className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.referenciasLaborales ? "bg-blue-100 border-blue-400 text-blue-800" : "bg-white border-blue-300 text-blue-600"}`}
               >
@@ -415,7 +438,10 @@ Desde ya muchas gracias. Saludos!`;
 
             {isInterviewTab && (
               <button
-                onClick={() => onSchedule(isScheduling ? null : cv.id!)}
+                onClick={() => {
+                  handleRegistrarRevision();
+                  onSchedule(isScheduling ? null : cv.id!);
+                }}
                 title="Agendar"
                 className={`px-2 sm:px-3 py-2 text-white text-sm rounded-lg ${isScheduling ? "bg-purple-800" : "bg-purple-600 hover:bg-purple-700"}`}
               >
@@ -434,7 +460,10 @@ Desde ya muchas gracias. Saludos!`;
                 </button>
 
                 <button
-                  onClick={() => onExam(cv, "fisico")}
+                  onClick={() => {
+                    handleRegistrarRevision();
+                    onExam(cv, "fisico");
+                  }}
                   title="Ex. Físico"
                   className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.examenFisico ? "bg-blue-100 border-blue-400 text-blue-800" : "bg-white border-blue-300 text-blue-600"}`}
                 >
@@ -442,7 +471,10 @@ Desde ya muchas gracias. Saludos!`;
                 </button>
 
                 <button
-                  onClick={() => onExam(cv, "psicotecnico")}
+                  onClick={() => {
+                    handleRegistrarRevision();
+                    onExam(cv, "psicotecnico");
+                  }}
                   title="Ex. Psicotécnico"
                   className={`px-2 sm:px-3 py-2 text-sm rounded-lg border-2 ${cv.examenPsicotecnico ? "bg-green-100 border-green-400 text-green-800" : "bg-white border-green-300 text-green-600"}`}
                 >
@@ -450,7 +482,10 @@ Desde ya muchas gracias. Saludos!`;
                 </button>
 
                 <button
-                  onClick={() => onSendMail(cv)}
+                  onClick={() => {
+                    handleRegistrarRevision();
+                    onSendMail(cv);
+                  }}
                   title="Email"
                   className="px-2 sm:px-3 py-2 text-white text-sm rounded-lg bg-sky-500 hover:bg-sky-600"
                 >
@@ -462,6 +497,7 @@ Desde ya muchas gracias. Saludos!`;
             {activeTab !== "seleccionados" && (
               <button
                 onClick={() => {
+                  handleRegistrarRevision();
                   onSchedule(null);
                   onStartSelection(cv.id!);
                 }}
@@ -516,7 +552,6 @@ Desde ya muchas gracias. Saludos!`;
         </div>
       </div>
 
-      {/* Scheduler y Editor */}
       {isScheduling && isInterviewTab && (
         <InterviewScheduler
           cv={cv}

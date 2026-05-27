@@ -280,6 +280,15 @@ export default async function handler(
     }
 
     // Datos a guardar/actualizar
+    let areaFinal = area;
+    let subAreaFinal = subArea;
+
+    // Si tiene búsqueda activa, usar el área y puesto de la primera búsqueda
+    if (tieneBusquedas && busquedasInfo.length > 0) {
+      areaFinal = busquedasInfo[0].area || "";
+      subAreaFinal = busquedasInfo[0].puesto || "";
+    }
+
     const cvData = {
       nombre,
       apellido,
@@ -288,8 +297,8 @@ export default async function handler(
       telefonoNumero,
       fechaNacimiento,
       nivelFormacion,
-      area: tieneBusquedas ? "" : area,
-      subArea: tieneBusquedas ? "" : subArea,
+      area: areaFinal,
+      subArea: subAreaFinal,
       lugarResidencia,
       email: email || "",
       busquedasPostuladas,
@@ -302,7 +311,6 @@ export default async function handler(
       uploadedAt: existingData?.uploadedAt || new Date().toISOString(),
       privacidadAceptada,
       fechaAceptacion,
-      // Mantener estado de selección si ya tenía
       puestoSeleccionado: existingData?.puestoSeleccionado || "",
       estadoSeleccion: existingData?.estadoSeleccion || "En Curso",
       notasAdmin: existingData?.notasAdmin || "",
