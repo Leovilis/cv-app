@@ -48,6 +48,46 @@ const getAreaPrincipal = (cv: CV) => {
   return cv.area || "Sin área";
 };
 
+const getPuestoAplicacion = (cv: CV) => {
+  // Si tiene puesto seleccionado por admin, mostrarlo como "Asignado"
+  if (cv.puestoSeleccionado) {
+    return { texto: cv.puestoSeleccionado, tipo: "asignado" };
+  }
+  // Si viene de búsqueda activa, mostrar el puesto de la búsqueda
+  if (
+    cv.busquedasInfo &&
+    cv.busquedasInfo.length > 0 &&
+    cv.busquedasInfo[0].puesto
+  ) {
+    return { texto: cv.busquedasInfo[0].puesto, tipo: "busqueda" };
+  }
+  // Si es postulación manual
+  if (cv.subArea) {
+    return { texto: cv.subArea, tipo: "manual" };
+  }
+  return { texto: "No especificado", tipo: "ninguno" };
+};
+
+const getAreaAplicacion = (cv: CV) => {
+  // Si tiene área asignada por admin
+  if ((cv as any).areaAsignada) {
+    return { texto: (cv as any).areaAsignada, tipo: "asignado" };
+  }
+  // Si viene de búsqueda activa
+  if (
+    cv.busquedasInfo &&
+    cv.busquedasInfo.length > 0 &&
+    cv.busquedasInfo[0].area
+  ) {
+    return { texto: cv.busquedasInfo[0].area, tipo: "busqueda" };
+  }
+  // Si es postulación manual
+  if (cv.area) {
+    return { texto: cv.area, tipo: "manual" };
+  }
+  return { texto: "Sin área", tipo: "ninguno" };
+};
+
 export const CVCard: React.FC<CVCardProps> = ({
   cv,
   activeTab,
@@ -281,19 +321,66 @@ Desde ya muchas gracias. Saludos!`;
         </div>
 
         {/* Información básica */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-xs sm:text-sm text-gray-600">
-          <p className="truncate">
-            <span className="font-medium">DNI:</span> {cv.dni}
-          </p>
-          <p className="truncate">
-            <span className="font-medium">Tel:</span> ({cv.telefonoArea}){" "}
-            {cv.telefonoNumero}
-          </p>
-          {cv.lugarResidencia && (
-            <p className="truncate col-span-2">
-              <span className="font-medium">📍</span> {cv.lugarResidencia}
+        <div>
+          <div className="block gap-x-3 gap-y-1 mt-3 text-xs sm:text-sm text-gray-600">
+            <p className="truncate">
+              <span className="font-medium">DNI:</span> {cv.dni}
             </p>
-          )}
+            <p className="truncate">
+              <span className="font-medium">Tel:</span> ({cv.telefonoArea}){" "}
+              {cv.telefonoNumero}
+            </p>
+            {cv.lugarResidencia && (
+              <p className="truncate">
+                <span className="font-medium">📍</span> {cv.lugarResidencia}
+              </p>
+            )}
+
+            {/* Área y puesto de aplicación */}
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-1">
+                📋 Postulación:
+              </p>
+              <div className="space-y-0.5">
+                <p className="truncate">
+                  <span className="font-medium">Área:</span>{" "}
+                  {cv.areaAsignada ? (
+                    <span className="text-green-600">
+                      {cv.areaAsignada}{" "}
+                      <span className="text-xs">(asignada)</span>
+                    </span>
+                  ) : cv.busquedasInfo?.[0]?.area ? (
+                    <span className="text-amber-600">
+                      {cv.busquedasInfo[0].area}{" "}
+                      <span className="text-xs">(búsqueda activa)</span>
+                    </span>
+                  ) : cv.area ? (
+                    <span>{cv.area}</span>
+                  ) : (
+                    <span className="text-gray-400">No especificada</span>
+                  )}
+                </p>
+                <p className="truncate">
+                  <span className="font-medium">Puesto:</span>{" "}
+                  {cv.puestoSeleccionado ? (
+                    <span className="text-green-600">
+                      {cv.puestoSeleccionado}{" "}
+                      <span className="text-xs">(asignado)</span>
+                    </span>
+                  ) : cv.busquedasInfo?.[0]?.puesto ? (
+                    <span className="text-amber-600">
+                      {cv.busquedasInfo[0].puesto}{" "}
+                      <span className="text-xs">(búsqueda activa)</span>
+                    </span>
+                  ) : cv.subArea ? (
+                    <span>{cv.subArea}</span>
+                  ) : (
+                    <span className="text-gray-400">No especificado</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {(showFullDetails || window.innerWidth >= 1024) && (
@@ -302,7 +389,7 @@ Desde ya muchas gracias. Saludos!`;
               <p className="text-xs font-semibold text-gray-500 mb-2">
                 📅 Fechas clave
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+              <div className="block sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
                 <div className="flex items-center gap-1">
                   <span>📄 Carga:</span>
                   <span className="font-medium text-gray-700">
@@ -312,7 +399,7 @@ Desde ya muchas gracias. Saludos!`;
 
                 {cv.fechaUltimaRevision && (
                   <div className="flex items-center gap-1">
-                    <span>👁️ Revisión:</span>
+                    <span className="font-bold text-base">👁️ Revisión:</span>
                     <span className="font-medium text-green-600">
                       {formatFecha(cv.fechaUltimaRevision)}
                     </span>

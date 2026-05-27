@@ -28,6 +28,7 @@ import { DiscardModal } from "./DiscardModal";
 import { ExamModal } from "./ExamModal";
 import { ReferencesModal } from "./ReferencesModal";
 import AdminSearchPanel from "@/components/AdminSearchPanel";
+import { useSession } from "next-auth/react";
 
 type AdminMainTab = "gestion" | "busquedas";
 
@@ -41,7 +42,7 @@ const getAreaPrincipal = (cv: CV) => {
 export const AdminPanel: React.FC = () => {
   const [activeMainTab, setActiveMainTab] = useState<AdminMainTab>("gestion");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const { data: session } = useSession();
   // Estados existentes del panel de CVs
   const [cvs, setCvs] = useState<CV[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("todos");
@@ -349,17 +350,36 @@ export const AdminPanel: React.FC = () => {
     window.open(`mailto:${email}?subject=${subject}&body=${body}`, "_blank");
   };
 
-  const handleRegistrarRevision = async (cvId: string) => {
-    try {
-      await fetch("/api/cv/update-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cvId }),
-      });
-    } catch (error) {
-      console.error("Error al registrar revisión:", error);
+const handleRegistrarRevision = async (cvId: string) => {
+  try {
+    const response = await fetch("/api/cv/update-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cvId }),
+    });
+    
+    if (response.ok) {
+      // Actualizar el estado local inmediatamente
+      setCvs(prevCvs => 
+        prevCvs.map(cv => {
+          if (cv.id === cvId) {
+            return {
+              ...cv,
+              fechaUltimaRevision: new Date().toISOString(),
+              revisadoPor: session?.user?.email || 'admin'
+            };
+          }
+          return cv;
+        })
+      );
     }
-  };
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+
+
   // Filtros y cálculos para CVs
   const base = (list: CV[]) =>
     list.filter((cv) => {
@@ -847,6 +867,7 @@ export const AdminPanel: React.FC = () => {
                       onRanking={(cv, tipo) => setRankingModal({ cv, tipo })}
                       onQuitProceso={setQuitProcesoModal}
                       onHistorial={setHistorialModal}
+                      onRegistrarRevision={handleRegistrarRevision}
                     />
                   ))}
                 </div>
