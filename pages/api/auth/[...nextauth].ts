@@ -10,21 +10,31 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
-      id: 'admin-credentials',
-      name: 'Admin',
+      id: "admin-credentials",
+      name: "Admin",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Contraseña", type: "password" }
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        const ADMIN_EMAIL = "sistemas@ddonpedrosrl.com";
-        const ADMIN_PASSWORD = "RRHH2026!";
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+        const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+        if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+          console.error(
+            "❌ ADMIN_EMAIL o ADMIN_PASSWORD no están definidas en las variables de entorno",
+          );
+          return null;
+        }
 
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        if (credentials.email.trim() === ADMIN_EMAIL && credentials.password === ADMIN_PASSWORD) {
+        if (
+          credentials.email.trim() === ADMIN_EMAIL &&
+          credentials.password === ADMIN_PASSWORD
+        ) {
           return {
             id: "admin-user",
             email: ADMIN_EMAIL,
@@ -32,21 +42,16 @@ export const authOptions: NextAuthOptions = {
             isAdmin: true,
           };
         }
-        
+
         return null;
-      }
+      },
     }),
   ],
-  
-  // 🔥 IMPORTANTE: No definir pages.signIn para evitar redirección automática
-  // pages: {
-  //   signIn: '/auth/signin',
-  // },
 
   session: {
     strategy: "jwt",
   },
-  
+
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -59,32 +64,22 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.sub;
-        (session.user as any).isAdmin = 
-          session.user.email === "sistemas@ddonpedrosrl.com" || 
+        (session.user as any).isAdmin =
+          session.user.email === process.env.ADMIN_EMAIL ||
           (token as any).isAdmin === true;
       }
       return session;
     },
 
     async redirect({ url, baseUrl }) {
-      console.log('Redirect - URL:', url, 'BaseURL:', baseUrl);
-      
-      // Si la URL ya es absoluta y está en el mismo origen
-      if (url.startsWith(baseUrl)) {
-        return url;
-      }
-      
-      // Si es un callback relativo
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      }
-      
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
       return baseUrl;
     },
   },
-  
+
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV === "development",
 };
 
 export default NextAuth(authOptions);
