@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         const ADMIN_EMAIL = "sistemas@ddonpedrosrl.com";
-        const ADMIN_PASSWORD = "Admin123!";
+        const ADMIN_PASSWORD = "RRHH2026!";
 
         if (!credentials?.email || !credentials?.password) {
           return null;
