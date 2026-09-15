@@ -199,6 +199,13 @@ export const MOTIVOS_DESCARTE = [
   'Otro motivo',
 ] as const;
 
+export interface MeetingData {
+  date: string;
+  time: string;
+  platform: 'meet' | 'zoom' | 'teams';
+  notes: string;
+}
+
 export interface APIResponse<T = any> {
   success?: boolean;
   error?: string;
