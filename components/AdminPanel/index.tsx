@@ -29,7 +29,7 @@ import { DiscardModal } from "./DiscardModal";
 import { ExamModal } from "./ExamModal";
 import { ReferencesModal } from "./ReferencesModal";
 import AdminSearchPanel from "@/components/AdminSearchPanel";
-import { AdminABMPanel } from "@/components/AdminAbmPanel";
+import { AdminABMPanel } from "@/components/AdminABMPanel";
 import { useSession } from "next-auth/react";
 
 type AdminMainTab = "gestion" | "busquedas" | "abm";

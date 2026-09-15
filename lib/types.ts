@@ -95,6 +95,7 @@ export interface HistorialEstado {
   fecha: string;
   motivo?: string;
   notas?: string;
+  realizadoPor?: string;
 }
 
 // ─── ABM Áreas y Puestos ─────────────────────────────────────────────────────
@@ -116,8 +117,8 @@ export interface BusquedaActiva {
   acercaDelPuesto?: string;
   principalesResponsabilidades?: string;
   requisitos?: string;
-  provincia: string;
-  departamento: string;
+  provincia?: string;
+  departamento?: string;
   creadaPor: string;
   creadaAt: string;
   activa: boolean;

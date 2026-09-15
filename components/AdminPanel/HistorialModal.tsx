@@ -213,8 +213,8 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                       <span className="text-xs text-gray-400">{formatFechaCorta(examenFisico.fecha)}</span>
                     </div>
                     {examenFisico.resultado && (
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${RESULTADO_CONFIG[examenFisico.resultado]?.bg} ${RESULTADO_CONFIG[examenFisico.resultado]?.border} ${RESULTADO_CONFIG[examenFisico.resultado]?.text}`}>
-                        {RESULTADO_CONFIG[examenFisico.resultado]?.icon} {examenFisico.resultado}
+                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${RESULTADO_CONFIG[examenFisico.resultado as keyof typeof RESULTADO_CONFIG]?.bg} ${RESULTADO_CONFIG[examenFisico.resultado as keyof typeof RESULTADO_CONFIG]?.border} ${RESULTADO_CONFIG[examenFisico.resultado as keyof typeof RESULTADO_CONFIG]?.text}`}>
+                        {RESULTADO_CONFIG[examenFisico.resultado as keyof typeof RESULTADO_CONFIG]?.icon} {examenFisico.resultado}
                       </div>
                     )}
                     {examenFisico.notas && (
@@ -229,8 +229,8 @@ export const HistorialModal: React.FC<HistorialModalProps> = ({ cv, onClose }) =
                       <span className="text-xs text-gray-400">{formatFechaCorta(examenPsicotecnico.fecha)}</span>
                     </div>
                     {examenPsicotecnico.resultado && (
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${RESULTADO_CONFIG[examenPsicotecnico.resultado]?.bg} ${RESULTADO_CONFIG[examenPsicotecnico.resultado]?.border} ${RESULTADO_CONFIG[examenPsicotecnico.resultado]?.text}`}>
-                        {RESULTADO_CONFIG[examenPsicotecnico.resultado]?.icon} {examenPsicotecnico.resultado}
+                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${RESULTADO_CONFIG[examenPsicotecnico.resultado as keyof typeof RESULTADO_CONFIG]?.bg} ${RESULTADO_CONFIG[examenPsicotecnico.resultado as keyof typeof RESULTADO_CONFIG]?.border} ${RESULTADO_CONFIG[examenPsicotecnico.resultado as keyof typeof RESULTADO_CONFIG]?.text}`}>
+                        {RESULTADO_CONFIG[examenPsicotecnico.resultado as keyof typeof RESULTADO_CONFIG]?.icon} {examenPsicotecnico.resultado}
                       </div>
                     )}
                     {examenPsicotecnico.notas && (
