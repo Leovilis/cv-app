@@ -1,8 +1,7 @@
 // components/AdminPanel/SelectionEditor.tsx
-import React, { useState } from "react";
-import { Check, X, Info, Briefcase } from "lucide-react";
-import { AREAS, AREAS_PUESTOS } from "@/lib/types";
+import { Check, X, Briefcase } from "lucide-react";
 import { CV } from "@/lib/types";
+import { useState, useEffect } from "react";
 
 interface SelectionEditorProps {
   cv: CV;
@@ -61,7 +60,18 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
   );
   const [notas, setNotas] = useState(cv.notasAdmin || "");
 
-  const puestosDeArea = areaSelec ? AREAS_PUESTOS[areaSelec] || [] : [];
+  const [areasDisponibles, setAreasDisponibles] = useState<{ nombre: string; puestos: string[] }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/areas/list')
+      .then(r => r.json())
+      .then(d => setAreasDisponibles(d.areas || []))
+      .catch(() => {});
+  }, []);
+
+  const puestosDeArea = areaSelec
+    ? (areasDisponibles.find(a => a.nombre === areaSelec)?.puestos || [])
+    : [];
 
   const togglePuesto = (p: string) =>
     setPuestosSelec((prev) =>
@@ -141,9 +151,9 @@ export const SelectionEditor: React.FC<SelectionEditorProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
             <option value="">-- Sin asignar --</option>
-            {AREAS.map((a) => (
-              <option key={a} value={a}>
-                {a}
+            {areasDisponibles.map((a) => (
+              <option key={a.nombre} value={a.nombre}>
+                {a.nombre}
               </option>
             ))}
           </select>

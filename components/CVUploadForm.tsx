@@ -17,9 +17,8 @@ import {
 import {
   CVFormData,
   BusquedaActiva,
-  AREAS,
-  AREAS_PUESTOS,
   NIVELES_FORMACION,
+  Area,
 } from "@/lib/types";
 import { PrivacyModal } from "./PrivacyModal";
 import { PuestoInfoModal } from "./PuestoInfoModal";
@@ -30,6 +29,9 @@ interface CVUploadFormProps {
 
 interface FormState extends CVFormData {
   subArea: string;
+  area: string;
+  provincia: string;
+  departamento: string;
 }
 
 export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
@@ -43,7 +45,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     nivelFormacion: "",
     area: "",
     subArea: "",
-    lugarResidencia: "",
+    provincia: "",
+    departamento: "",
     cv: null,
     busquedasPostuladas: [],
   });
@@ -60,11 +63,43 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   const [selectedPuestoInfo, setSelectedPuestoInfo] =
     useState<BusquedaActiva | null>(null);
 
+  // Georef
+  const [provincias, setProvincias] = useState<{id:string;nombre:string}[]>([]);
+  const [departamentos, setDepartamentos] = useState<{id:string;nombre:string}[]>([]);
+  const [loadingDeps, setLoadingDeps] = useState(false);
+
+  // Áreas dinámicas
+  const [areasDisponibles, setAreasDisponibles] = useState<Area[]>([]);
+
+  useEffect(() => {
+    fetch('https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=100')
+      .then(r => r.json())
+      .then(d => setProvincias((d.provincias||[]).sort((a:any,b:any)=>a.nombre.localeCompare(b.nombre))))
+      .catch(()=>{});
+    fetch('/api/areas/list')
+      .then(r => r.json())
+      .then(d => setAreasDisponibles(d.areas||[]))
+      .catch(()=>{});
+  }, []);
+
+  useEffect(() => {
+    if (!formData.provincia) { setDepartamentos([]); return; }
+    setLoadingDeps(true);
+    setFormData(prev => ({...prev, departamento: ''}));
+    const prov = provincias.find(p => p.nombre === formData.provincia);
+    if (!prov) { setLoadingDeps(false); return; }
+    fetch(`https://apis.datos.gob.ar/georef/api/departamentos?provincia=${prov.id}&campos=id,nombre&max=200`)
+      .then(r => r.json())
+      .then(d => setDepartamentos((d.departamentos||[]).sort((a:any,b:any)=>a.nombre.localeCompare(b.nombre))))
+      .catch(()=>setDepartamentos([]))
+      .finally(()=>setLoadingDeps(false));
+  }, [formData.provincia, provincias]);
+
   // Determinar si el área y puesto están deshabilitados (no son requeridos)
   const isAreaPuestoDisabled = postulaBusqueda;
 
   const subAreasDisponibles = formData.area
-    ? AREAS_PUESTOS[formData.area] || []
+    ? (areasDisponibles.find(a => a.nombre === formData.area)?.puestos || [])
     : [];
 
   useEffect(() => {
@@ -119,8 +154,10 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       newErrors.fechaNacimiento = "Formato inválido (dd/MM/yyyy)";
     if (!formData.nivelFormacion)
       newErrors.nivelFormacion = "Seleccione un nivel de formación";
-    if (!formData.lugarResidencia.trim())
-      newErrors.lugarResidencia = "El lugar de residencia es requerido";
+    if (!formData.provincia)
+      newErrors.provincia = "Seleccione una provincia";
+    if (!formData.departamento)
+      newErrors.departamento = "Seleccione un departamento";
 
     // 🔽 VALIDACIÓN CONDICIONAL: Solo requiere área y puesto si NO postula a búsqueda activa
     if (!postulaBusqueda) {
@@ -158,7 +195,9 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         fd.append("subArea", "");
       }
 
-      fd.append("lugarResidencia", formData.lugarResidencia);
+      fd.append("provincia", formData.provincia || "");
+      fd.append("departamento", formData.departamento || "");
+      fd.append("lugarResidencia", formData.departamento && formData.provincia ? `${formData.departamento}, ${formData.provincia}` : "");
       fd.append(
         "busquedasPostuladas",
         JSON.stringify(formData.busquedasPostuladas),
@@ -184,7 +223,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         nivelFormacion: "",
         area: "",
         subArea: "",
-        lugarResidencia: "",
+        provincia: "",
+        departamento: "",
         cv: null,
         busquedasPostuladas: [],
       });
@@ -420,26 +460,41 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
         )}
       </div>
 
-      {/* Lugar de Residencia */}
-      <div>
-        <label className={labelCls}>
-          <MapPin className="inline w-4 h-4 mr-1" />
-          Lugar de Residencia *
-        </label>
-        <input
-          type="text"
-          placeholder="Ej: San Salvador de Jujuy"
-          value={formData.lugarResidencia}
-          onChange={(e) =>
-            setFormData({ ...formData, lugarResidencia: e.target.value })
-          }
-          className={inputCls}
-          disabled={loading}
-          autoComplete="address-level2"
-        />
-        {errors.lugarResidencia && (
-          <p className={errorCls}>{errors.lugarResidencia}</p>
-        )}
+      {/* Lugar de Residencia — Georef */}
+      <div className="border border-manzur-secondary rounded-xl overflow-hidden">
+        <div className="px-4 py-2.5 bg-gray-50 border-b border-manzur-secondary">
+          <p className="text-sm font-medium text-manzur-primary flex items-center gap-1.5">
+            <MapPin className="w-4 h-4" />Lugar de Residencia *
+          </p>
+        </div>
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Provincia</label>
+            <select
+              value={formData.provincia}
+              onChange={e => setFormData({...formData, provincia: e.target.value})}
+              className={inputCls}
+              disabled={loading || provincias.length === 0}
+            >
+              <option value="">{provincias.length === 0 ? "Cargando..." : "— Elegí una provincia —"}</option>
+              {provincias.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
+            </select>
+            {errors.provincia && <p className={errorCls}>{errors.provincia}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Departamento / Partido</label>
+            <select
+              value={formData.departamento}
+              onChange={e => setFormData({...formData, departamento: e.target.value})}
+              className={inputCls}
+              disabled={loading || !formData.provincia || loadingDeps}
+            >
+              <option value="">{loadingDeps ? "Cargando..." : !formData.provincia ? "Primero elegí una provincia" : "— Elegí un departamento —"}</option>
+              {departamentos.map(d => <option key={d.id} value={d.nombre}>{d.nombre}</option>)}
+            </select>
+            {errors.departamento && <p className={errorCls}>{errors.departamento}</p>}
+          </div>
+        </div>
       </div>
 
       {/* Área + Sub-área - Se deshabilita si postula a búsqueda activa */}
@@ -473,9 +528,9 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
               disabled={loading || isAreaPuestoDisabled}
             >
               <option value="">— Elegí un área —</option>
-              {AREAS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
+              {areasDisponibles.map((a) => (
+                <option key={a.nombre} value={a.nombre}>
+                  {a.nombre}
                 </option>
               ))}
             </select>
@@ -607,7 +662,7 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
                           </button>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {b.area} · {b.puesto} · {b.lugarResidencia}
+                          {b.titulo} · <strong>{b.lugarResidencia}</strong>
                         </p>
                       </div>
                     </label>

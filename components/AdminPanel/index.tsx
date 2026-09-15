@@ -10,10 +10,11 @@ import {
   RotateCcw,
   Menu,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   CV,
-  ESTADOS_SELECCION,
   TabType,
   ExamType,
   ExamResultado,
@@ -28,9 +29,10 @@ import { DiscardModal } from "./DiscardModal";
 import { ExamModal } from "./ExamModal";
 import { ReferencesModal } from "./ReferencesModal";
 import AdminSearchPanel from "@/components/AdminSearchPanel";
+import { AdminABMPanel } from "@/components/AdminAbmPanel";
 import { useSession } from "next-auth/react";
 
-type AdminMainTab = "gestion" | "busquedas";
+type AdminMainTab = "gestion" | "busquedas" | "abm";
 
 const getAreaPrincipal = (cv: CV) => {
   if ((cv as any).areaAsignada) {
@@ -38,6 +40,9 @@ const getAreaPrincipal = (cv: CV) => {
   }
   return cv.area || "Sin área";
 };
+
+// Tipo extendido para la vista de terna (calculado localmente, no viene de Firestore)
+type CVConTerna = CV & { promedioTerna: number; areaPrincipal: string };
 
 export const AdminPanel: React.FC = () => {
   const [activeMainTab, setActiveMainTab] = useState<AdminMainTab>("gestion");
@@ -50,6 +55,7 @@ export const AdminPanel: React.FC = () => {
   const [selectedFormacion, setSelectedFormacion] = useState("Todos");
   const [selectedResidencia, setSelectedResidencia] = useState("Todos");
   const [selectedPuesto, setSelectedPuesto] = useState("Todos");
+  const [filterRevision, setFilterRevision] = useState<"todos"|"revisados"|"sinRevisar">("todos");
   const [loading, setLoading] = useState(true);
   const [editingCV, setEditingCV] = useState<string | null>(null);
   const [schedulingCV, setSchedulingCV] = useState<string | null>(null);
@@ -145,8 +151,16 @@ export const AdminPanel: React.FC = () => {
     try {
       const r = await fetch(`/api/cv/download?id=${cv.id}`);
       const d = await r.json();
-      if (r.ok) window.open(d.downloadUrl, "_blank");
-      else alert(d.error || "Error al descargar");
+      if (r.ok) {
+        window.open(d.downloadUrl, "_blank");
+        if (!cv.revisado) {
+          fetch('/api/cv/mark-revisado', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cvId: cv.id }),
+          }).then(() => fetchCVs()).catch(() => {});
+        }
+      } else alert(d.error || "Error al descargar");
     } catch {
       alert("Error al descargar el CV");
     }
@@ -380,10 +394,14 @@ const handleRegistrarRevision = async (cvId: string) => {
 
 
 
+  // Un CV está revisado si tiene el flag revisado, o si tiene fecha de revisión anterior al nuevo sistema
+  const isRevisado = (cv: CV) =>
+    !!(cv.revisado || cv.revisadoAt || cv.fechaUltimaRevision);
+
   // Filtros y cálculos para CVs
   const base = (list: CV[]) =>
     list.filter((cv) => {
-      if (selectedArea !== "Todos" && cv.area !== selectedArea) return false;
+      if (selectedArea !== "Todos" && cv.area?.toLocaleLowerCase() !== selectedArea.toLowerCase()) return false;
       if (
         selectedFormacion !== "Todos" &&
         cv.nivelFormacion !== selectedFormacion
@@ -394,6 +412,8 @@ const handleRegistrarRevision = async (cvId: string) => {
         cv.lugarResidencia !== selectedResidencia
       )
         return false;
+      if (filterRevision === "revisados" && !isRevisado(cv)) return false;
+      if (filterRevision === "sinRevisar" && isRevisado(cv)) return false;
       return true;
     });
 
@@ -446,19 +466,16 @@ const handleRegistrarRevision = async (cvId: string) => {
               ? seleccionados
               : descartados;
 
-  const puestosDisponibles =
-    activeTab !== "todos"
-      ? Array.from(
-          new Set(
-            cvsSinFiltroPuesto
-              .map((cv) => cv.puestoSeleccionado || cv.subArea || "")
-              .filter(Boolean),
-          ),
-        ).sort()
-      : [];
+  const puestosDisponibles = Array.from(
+    new Set(
+      cvsSinFiltroPuesto
+        .map((cv) => cv.puestoSeleccionado || cv.subArea || "")
+        .filter(Boolean),
+    ),
+  ).sort();
 
   const displayCvs =
-    activeTab !== "todos" && selectedPuesto !== "Todos"
+    selectedPuesto !== "Todos"
       ? cvsSinFiltroPuesto.filter(
           (cv) =>
             (cv.puestoSeleccionado || cv.subArea || "") === selectedPuesto,
@@ -545,6 +562,16 @@ const handleRegistrarRevision = async (cvId: string) => {
         >
           Búsquedas Activas
         </button>
+        <button
+          onClick={() => setActiveMainTab("abm")}
+          className={`px-4 sm:px-6 py-3 font-semibold text-sm transition-colors ${
+            activeMainTab === "abm"
+              ? "border-b-2 border-manzur-primary text-manzur-primary"
+              : "text-gray-500 hover:text-manzur-primary"
+          }`}
+        >
+          Áreas y Puestos
+        </button>
       </div>
 
       {/* Mobile tabs - select dropdown */}
@@ -588,6 +615,16 @@ const handleRegistrarRevision = async (cvId: string) => {
               >
                 🔍 Búsquedas Activas
               </button>
+              <button
+                onClick={() => setActiveMainTab("abm")}
+                className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                  activeMainTab === "abm"
+                    ? "bg-manzur-primary/10 text-manzur-primary font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                🗂️ Áreas y Puestos
+              </button>
             </div>
           )}
         </div>
@@ -603,6 +640,10 @@ const handleRegistrarRevision = async (cvId: string) => {
       {activeMainTab === "busquedas" ? (
         <div className="px-2 sm:px-0">
           <AdminSearchPanel />
+        </div>
+      ) : activeMainTab === "abm" ? (
+        <div className="px-2 sm:px-0">
+          <AdminABMPanel />
         </div>
       ) : (
         <>
@@ -750,7 +791,7 @@ const handleRegistrarRevision = async (cvId: string) => {
             // ==================== TERNA: ORDENADO POR PROMEDIO ====================
             (() => {
               // Calcular promedio y área principal para cada CV
-              const cvsConDatos = displayCvs.map((cv) => {
+              const cvsConDatos: CVConTerna[] = displayCvs.map((cv) => {
                 const puntRRHH = (cv as any).puntuacionRRHH || 0;
                 const puntAT = (cv as any).puntuacionAreaTecnica || 0;
                 const promedio = (puntRRHH + puntAT) / 2;
@@ -767,10 +808,10 @@ const handleRegistrarRevision = async (cvId: string) => {
               });
 
               // Agrupar por área principal
-              const grupos: Record<string, CV[]> = {};
-              cvsOrdenados.forEach((cv) => {
-                if (!grupos[cv.areaPrincipal]) grupos[cv.areaPrincipal] = [];
-                grupos[cv.areaPrincipal].push(cv);
+              const grupos: Record<string, CVConTerna[]> = {};
+              cvsOrdenados.forEach((cvt) => {
+                if (!grupos[cvt.areaPrincipal]) grupos[cvt.areaPrincipal] = [];
+                grupos[cvt.areaPrincipal].push(cvt);
               });
 
               return Object.entries(grupos).map(([area, areaCvs]) => (
@@ -784,8 +825,8 @@ const handleRegistrarRevision = async (cvId: string) => {
                     </span>
                   </h3>
                   <div className="space-y-3">
-                    {areaCvs.map((cv, idx) => (
-                      <div key={cv.id} className="flex items-stretch gap-3">
+                    {areaCvs.map((cvt, idx) => (
+                      <div key={cvt.id} className="flex items-stretch gap-3">
                         {/* Columna de ranking */}
                         <div className="flex flex-col items-center justify-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 min-w-[70px]">
                           <span className="text-xs text-gray-500">Puesto</span>
@@ -793,13 +834,13 @@ const handleRegistrarRevision = async (cvId: string) => {
                             {idx + 1}
                           </span>
                           <span className="text-xs font-semibold text-amber-600">
-                            {(cv.promedioTerna || 0).toFixed(1)}
+                            {(cvt.promedioTerna || 0).toFixed(1)}
                           </span>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
                               <span
                                 key={s}
-                                className={`text-[10px] ${s <= Math.round(cv.promedioTerna || 0) ? "text-yellow-500" : "text-gray-300"}`}
+                                className={`text-[10px] ${s <= Math.round(cvt.promedioTerna || 0) ? "text-yellow-500" : "text-gray-300"}`}
                               >
                                 ★
                               </span>
@@ -809,8 +850,8 @@ const handleRegistrarRevision = async (cvId: string) => {
                         {/* CV Card */}
                         <div className="flex-1 min-w-0">
                           <CVCard
-                            key={cv.id}
-                            cv={cv}
+                            key={cvt.id}
+                            cv={cvt}
                             activeTab={activeTab}
                             editingCV={editingCV}
                             schedulingCV={schedulingCV}
@@ -842,8 +883,40 @@ const handleRegistrarRevision = async (cvId: string) => {
           ) : (
             Object.entries(groupedCvs).map(([area, areaCvs]) => (
               <div key={area} className="mb-6 sm:mb-8">
-                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary px-2 sm:px-0">
-                  {area} ({areaCvs.length})
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary px-2 sm:px-0 flex flex-wrap items-center gap-2">
+                  <span>{area} ({areaCvs.length})</span>
+                  <button
+                    onClick={() => {
+                      if (filterRevision === "revisados" && selectedArea === area) {
+                        setFilterRevision("todos"); setSelectedArea("Todos");
+                      } else {
+                        setFilterRevision("revisados"); setSelectedArea(area);
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors ${
+                      filterRevision === "revisados" && selectedArea === area
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                    }`}
+                  >
+                    <Eye className="w-3 h-3"/>{areaCvs.filter(c => isRevisado(c)).length} revisados
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (filterRevision === "sinRevisar" && selectedArea === area) {
+                        setFilterRevision("todos"); setSelectedArea("Todos");
+                      } else {
+                        setFilterRevision("sinRevisar"); setSelectedArea(area);
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors ${
+                      filterRevision === "sinRevisar" && selectedArea === area
+                        ? "bg-orange-600 text-white border-orange-600"
+                        : "bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200"
+                    }`}
+                  >
+                    <EyeOff className="w-3 h-3"/>{areaCvs.filter(c => !isRevisado(c)).length} sin revisar
+                  </button>
                 </h3>
                 <div className="space-y-3 sm:space-y-4">
                   {areaCvs.map((cv) => (

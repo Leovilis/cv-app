@@ -1,5 +1,5 @@
 // components/AdminPanel/CVCard.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Download,
   Trash2,
@@ -20,31 +20,15 @@ import {
   ChevronUp,
   Bookmark,
 } from "lucide-react";
-import { CV, AREAS_PUESTOS } from "@/lib/types";
+import { CV } from "@/lib/types";
 import { EXAM_BADGE, RESULTADO_CONFIG } from "@/lib/constants";
 import { CVCardProps } from "./types";
 import { InterviewScheduler } from "./InterviewScheduler";
 import { SelectionEditor } from "./SelectionEditor";
 
 const getAreaPrincipal = (cv: CV) => {
-  if ((cv as any).areaAsignada) {
-    return (cv as any).areaAsignada;
-  }
-  if (cv.puestoSeleccionado) {
-    const puestosList = cv.puestoSeleccionado.split(",").map((p) => p.trim());
-    for (const [areaName, puestos] of Object.entries(AREAS_PUESTOS)) {
-      if (puestosList.some((p) => puestos.includes(p))) {
-        return areaName;
-      }
-    }
-  }
-  if (
-    cv.busquedasInfo &&
-    cv.busquedasInfo.length > 0 &&
-    cv.busquedasInfo[0].area
-  ) {
-    return cv.busquedasInfo[0].area;
-  }
+  if ((cv as any).areaAsignada) return (cv as any).areaAsignada;
+  if (cv.busquedasInfo?.[0]?.area) return cv.busquedasInfo[0].area;
   return cv.area || "Sin área";
 };
 
@@ -55,11 +39,9 @@ const getPuestoAplicacion = (cv: CV) => {
   }
   // Si viene de búsqueda activa, mostrar el puesto de la búsqueda
   if (
-    cv.busquedasInfo &&
-    cv.busquedasInfo.length > 0 &&
-    cv.busquedasInfo[0].puesto
+    cv.busquedasInfo?.[0]?.puesto
   ) {
-    return { texto: cv.busquedasInfo[0].puesto, tipo: "busqueda" };
+    return { texto: cv.busquedasInfo[0].puesto!, tipo: "busqueda" };
   }
   // Si es postulación manual
   if (cv.subArea) {
@@ -75,11 +57,9 @@ const getAreaAplicacion = (cv: CV) => {
   }
   // Si viene de búsqueda activa
   if (
-    cv.busquedasInfo &&
-    cv.busquedasInfo.length > 0 &&
-    cv.busquedasInfo[0].area
+    cv.busquedasInfo?.[0]?.area
   ) {
-    return { texto: cv.busquedasInfo[0].area, tipo: "busqueda" };
+    return { texto: cv.busquedasInfo[0].area!, tipo: "busqueda" };
   }
   // Si es postulación manual
   if (cv.area) {
@@ -115,6 +95,14 @@ export const CVCard: React.FC<CVCardProps> = ({
     cv.estadoSeleccion === "Descartado" ||
     cv.estadoSeleccion === "Quitado del Proceso";
   const [showFullDetails, setShowFullDetails] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const isInterviewTab =
     activeTab === "entrevistaRRHH" || activeTab === "entrevistaAreaTecnica";
@@ -290,9 +278,16 @@ Desde ya muchas gracias. Saludos!`;
       <div className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-base sm:text-lg truncate">
-              {cv.nombre} {cv.apellido}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-base sm:text-lg truncate">
+                {cv.nombre} {cv.apellido}
+              </p>
+              {cv.revisado && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300 flex-shrink-0">
+                  ✓ Revisado
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-1">
               {tienePuntuacionRRHH && (
@@ -330,9 +325,12 @@ Desde ya muchas gracias. Saludos!`;
               <span className="font-medium">Tel:</span> ({cv.telefonoArea}){" "}
               {cv.telefonoNumero}
             </p>
-            {cv.lugarResidencia && (
+            {(cv.departamento || cv.provincia || cv.lugarResidencia) && (
               <p className="truncate">
-                <span className="font-medium">📍</span> {cv.lugarResidencia}
+                <span className="font-medium">📍</span>{" "}
+                {cv.departamento && cv.provincia
+                  ? `${cv.departamento}, ${cv.provincia}`
+                  : cv.lugarResidencia || cv.provincia || cv.departamento}
               </p>
             )}
 
@@ -383,7 +381,7 @@ Desde ya muchas gracias. Saludos!`;
           </div>
         </div>
 
-        {(showFullDetails || window.innerWidth >= 1024) && (
+        {(showFullDetails || isDesktop) && (
           <div className="mt-3 space-y-3">
             <div className="pt-2 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 mb-2">

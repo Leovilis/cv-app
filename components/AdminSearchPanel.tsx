@@ -1,5 +1,5 @@
 // components/AdminSearchPanel.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Trash2,
@@ -11,13 +11,9 @@ import {
   Edit2,
   Check,
   X,
-  FileText,
   Eye,
-  ListChecks,
-  Target,
 } from "lucide-react";
-import { BusquedaActiva, AREAS, AREAS_PUESTOS } from "@/lib/types";
-import { PuestoModal } from "./PuestoModal";
+import { BusquedaActiva, Area } from "@/lib/types";
 
 const AdminSearchPanel: React.FC = () => {
   const [busquedas, setBusquedas] = useState<BusquedaActiva[]>([]);
@@ -25,12 +21,6 @@ const AdminSearchPanel: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showPuestoModal, setShowPuestoModal] = useState<BusquedaActiva | null>(
-    null,
-  );
-  const [showPreviewModal, setShowPreviewModal] =
-    useState<BusquedaActiva | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     titulo: "",
     area: "",
@@ -41,6 +31,16 @@ const AdminSearchPanel: React.FC = () => {
     requisitos: "",
   });
   const [formErrors, setFormErrors] = useState<Partial<typeof form>>({});
+  const [areasDisponibles, setAreasDisponibles] = useState<Area[]>([]);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState<BusquedaActiva | null>(null);
+
+  useEffect(() => {
+    fetch('/api/areas/list')
+      .then(r => r.json())
+      .then(d => setAreasDisponibles(d.areas || []))
+      .catch(() => {});
+  }, []);
 
   const fetchBusquedas = async () => {
     setLoading(true);
@@ -59,15 +59,6 @@ const AdminSearchPanel: React.FC = () => {
     fetchBusquedas();
   }, []);
 
-  // Scroll al formulario cuando se abre en modo edición
-  useEffect(() => {
-    if (showForm && editingId && formRef.current) {
-      setTimeout(() => {
-        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    }
-  }, [showForm, editingId]);
-
   const handleCreate = async () => {
     const errors: Partial<typeof form> = {};
     if (!form.titulo.trim()) errors.titulo = "El título es requerido";
@@ -85,30 +76,13 @@ const AdminSearchPanel: React.FC = () => {
       const res = await fetch("/api/active-searches/manage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          titulo: form.titulo,
-          area: form.area,
-          puesto: form.puesto,
-          lugarResidencia: form.lugarResidencia,
-          acercaDelPuesto: form.acercaDelPuesto || "",
-          principalesResponsabilidades: form.principalesResponsabilidades || "",
-          requisitos: form.requisitos || "",
-        }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
       if (res.ok) {
-        setForm({
-          titulo: "",
-          area: "",
-          puesto: "",
-          lugarResidencia: "",
-          acercaDelPuesto: "",
-          principalesResponsabilidades: "",
-          requisitos: "",
-        });
+        setForm({ titulo: "", area: "", puesto: "", lugarResidencia: "", acercaDelPuesto: "", principalesResponsabilidades: "", requisitos: "" });
         setFormErrors({});
         setShowForm(false);
-        setEditingId(null);
         fetchBusquedas();
       } else {
         alert(data.error || "Error al crear la búsqueda");
@@ -137,25 +111,18 @@ const AdminSearchPanel: React.FC = () => {
   const handleDelete = async (b: BusquedaActiva) => {
     if (
       !confirm(
-        `¿Eliminar permanentemente la búsqueda "${b.titulo}"?\n\nEsta acción no se puede deshacer.`,
+        `¿Dar de baja la búsqueda "${b.titulo}"? Ya no aparecerá en el formulario de carga.`,
       )
     )
       return;
-
     try {
       const res = await fetch(`/api/active-searches/manage?id=${b.id}`, {
         method: "DELETE",
       });
-
-      if (res.ok) {
-        alert("✅ Búsqueda eliminada permanentemente");
-        fetchBusquedas();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Error al eliminar la búsqueda");
-      }
+      if (res.ok) fetchBusquedas();
+      else alert("Error al dar de baja");
     } catch {
-      alert("Error al eliminar la búsqueda");
+      alert("Error al dar de baja la búsqueda");
     }
   };
 
@@ -163,9 +130,9 @@ const AdminSearchPanel: React.FC = () => {
     setEditingId(b.id!);
     setForm({
       titulo: b.titulo,
-      area: b.area,
-      puesto: b.puesto,
-      lugarResidencia: b.lugarResidencia,
+      area: b.area || "",
+      puesto: b.puesto || "",
+      lugarResidencia: b.lugarResidencia || "",
       acercaDelPuesto: b.acercaDelPuesto || "",
       principalesResponsabilidades: b.principalesResponsabilidades || "",
       requisitos: b.requisitos || "",
@@ -190,28 +157,11 @@ const AdminSearchPanel: React.FC = () => {
       const res = await fetch("/api/active-searches/manage", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editingId,
-          titulo: form.titulo,
-          area: form.area,
-          puesto: form.puesto,
-          lugarResidencia: form.lugarResidencia,
-          acercaDelPuesto: form.acercaDelPuesto || "",
-          principalesResponsabilidades: form.principalesResponsabilidades || "",
-          requisitos: form.requisitos || "",
-        }),
+        body: JSON.stringify({ id: editingId, ...form }),
       });
       const data = await res.json();
       if (res.ok) {
-        setForm({
-          titulo: "",
-          area: "",
-          puesto: "",
-          lugarResidencia: "",
-          acercaDelPuesto: "",
-          principalesResponsabilidades: "",
-          requisitos: "",
-        });
+        setForm({ titulo: "", area: "", puesto: "", lugarResidencia: "", acercaDelPuesto: "", principalesResponsabilidades: "", requisitos: "" });
         setFormErrors({});
         setShowForm(false);
         setEditingId(null);
@@ -226,39 +176,12 @@ const AdminSearchPanel: React.FC = () => {
     }
   };
 
-  const handleSavePuestoInfo = async (
-    id: string,
-    data: {
-      acercaDelPuesto: string;
-      principalesResponsabilidades: string;
-      requisitos: string;
-    },
-  ) => {
-    try {
-      const res = await fetch("/api/active-searches/manage", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...data }),
-      });
-
-      if (res.ok) {
-        await fetchBusquedas();
-        alert("✅ Información del puesto guardada exitosamente");
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || "Error al guardar la información");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Error al guardar la información");
-    }
-  };
-
-  const puestosDisponibles = form.area ? AREAS_PUESTOS[form.area] || [] : [];
+  const puestosDisponibles = form.area
+    ? (areasDisponibles.find(a => a.nombre === form.area)?.puestos || [])
+    : [];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-bold text-manzur-primary flex items-center gap-2">
@@ -304,12 +227,8 @@ const AdminSearchPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Formulario de nueva búsqueda / edición */}
       {showForm && (
-        <div
-          ref={formRef}
-          className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4"
-        >
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
           <h3 className="font-semibold text-manzur-primary">
             {editingId ? "Editar búsqueda" : "Nueva búsqueda activa"}
           </h3>
@@ -346,9 +265,9 @@ const AdminSearchPanel: React.FC = () => {
                 disabled={saving}
               >
                 <option value="">Seleccione un área</option>
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
+                {areasDisponibles.map((a) => (
+                  <option key={a.nombre} value={a.nombre}>
+                    {a.nombre}
                   </option>
                 ))}
               </select>
@@ -378,6 +297,41 @@ const AdminSearchPanel: React.FC = () => {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Campos de descripción */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Acerca del puesto</label>
+            <textarea
+              value={form.acercaDelPuesto}
+              onChange={e => setForm({...form, acercaDelPuesto: e.target.value})}
+              rows={3}
+              placeholder="Descripción general del puesto..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Principales responsabilidades</label>
+            <textarea
+              value={form.principalesResponsabilidades}
+              onChange={e => setForm({...form, principalesResponsabilidades: e.target.value})}
+              rows={3}
+              placeholder="Listá las responsabilidades principales..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Requisitos</label>
+            <textarea
+              value={form.requisitos}
+              onChange={e => setForm({...form, requisitos: e.target.value})}
+              rows={3}
+              placeholder="Formación, experiencia, habilidades requeridas..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
+              disabled={saving}
+            />
           </div>
 
           {form.area && (
@@ -410,120 +364,51 @@ const AdminSearchPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Sección "Acerca del Puesto" */}
-          <div className="border-t border-blue-200 pt-4 mt-2">
-            <h4 className="font-medium text-manzur-primary mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Información detallada del puesto (visible para postulantes)
-            </h4>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción del puesto
-                </label>
-                <textarea
-                  value={form.acercaDelPuesto}
-                  onChange={(e) =>
-                    setForm({ ...form, acercaDelPuesto: e.target.value })
-                  }
-                  rows={3}
-                  placeholder="Describa las responsabilidades, tareas diarias, objetivos del puesto..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
-                  disabled={saving}
-                />
-              </div>
-
-              {/* Principales responsabilidades (antes beneficios) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Target className="inline w-3.5 h-3.5 mr-1" />
-                  Principales responsabilidades
-                </label>
-                <textarea
-                  value={form.principalesResponsabilidades}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      principalesResponsabilidades: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  placeholder="• Gestionar el área de...&#10;• Coordinar reuniones...&#10;• Elaborar informes...&#10;• Supervisar equipos..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
-                  disabled={saving}
-                />
-              </div>
-
-              {/* Requisitos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <ListChecks className="inline w-3.5 h-3.5 mr-1" />
-                  Requisitos del puesto
-                </label>
-                <textarea
-                  value={form.requisitos}
-                  onChange={(e) =>
-                    setForm({ ...form, requisitos: e.target.value })
-                  }
-                  rows={3}
-                  placeholder="• Formación requerida&#10;• Experiencia mínima&#10;• Conocimientos específicos"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-manzur-primary resize-none"
-                  disabled={saving}
-                />
-              </div>
-
-              {/* Botón de previsualización */}
-              {(form.acercaDelPuesto ||
-                form.principalesResponsabilidades ||
-                form.requisitos) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPreviewModal({
-                      id: "preview",
-                      titulo: form.titulo || "Vista previa",
-                      area: form.area,
-                      puesto: form.puesto,
-                      lugarResidencia: form.lugarResidencia,
-                      acercaDelPuesto: form.acercaDelPuesto,
-                      principalesResponsabilidades:
-                        form.principalesResponsabilidades,
-                      requisitos: form.requisitos,
-                      creadaPor: "",
-                      creadaAt: new Date().toISOString(),
-                      activa: true,
-                    } as BusquedaActiva);
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  Previsualizar cómo lo ven los postulantes
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setEditingId(null);
-                setForm({
-                  titulo: "",
-                  area: "",
-                  puesto: "",
-                  lugarResidencia: "",
-                  acercaDelPuesto: "",
-                  principalesResponsabilidades: "",
-                  requisitos: "",
-                });
-                setFormErrors({});
-              }}
-              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
+          <div className="flex justify-between items-center gap-3 pt-1 flex-wrap">
+            {(form.acercaDelPuesto || form.principalesResponsabilidades || form.requisitos) && (
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal({
+                  id: "preview",
+                  titulo: form.titulo || "Vista previa",
+                  area: form.area,
+                  puesto: form.puesto,
+                  lugarResidencia: form.lugarResidencia,
+                  provincia: "",
+                  departamento: "",
+                  acercaDelPuesto: form.acercaDelPuesto,
+                  principalesResponsabilidades: form.principalesResponsabilidades,
+                  requisitos: form.requisitos,
+                  creadaPor: "",
+                  creadaAt: new Date().toISOString(),
+                  activa: true,
+                })}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Previsualizar cómo lo ven los postulantes
+              </button>
+            )}
+            <div className="flex gap-3 ml-auto">
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setForm({
+                    titulo: "",
+                    area: "",
+                    puesto: "",
+                    lugarResidencia: "",
+                    acercaDelPuesto: "",
+                    principalesResponsabilidades: "",
+                    requisitos: "",
+                  });
+                  setFormErrors({});
+                }}
+                className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
             <button
               onClick={editingId ? handleUpdate : handleCreate}
               disabled={saving}
@@ -542,11 +427,11 @@ const AdminSearchPanel: React.FC = () => {
                   ? "Actualizar"
                   : "Crear búsqueda"}
             </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Lista de búsquedas */}
       {loading ? (
         <p className="text-center text-gray-500 py-8">Cargando...</p>
       ) : busquedas.length === 0 ? (
@@ -560,7 +445,7 @@ const AdminSearchPanel: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {busquedas.map((b) => (
+          {[...busquedas].sort((a, b) => (b.activa ? 1 : 0) - (a.activa ? 1 : 0)).map((b) => (
             <div
               key={b.id}
               className={`flex items-center justify-between p-4 border rounded-xl hover:shadow-sm transition-shadow
@@ -580,10 +465,10 @@ const AdminSearchPanel: React.FC = () => {
                     <Briefcase className="w-3.5 h-3.5" />
                     {b.area}
                   </span>
-                  {b.puesto && (
+                  {(b as any).puesto && (
                     <span className="flex items-center gap-1">
                       <ChevronRight className="w-3.5 h-3.5" />
-                      {b.puesto}
+                      {(b as any).puesto}
                     </span>
                   )}
                   <span className="flex items-center gap-1">
@@ -598,20 +483,6 @@ const AdminSearchPanel: React.FC = () => {
               </div>
               <div className="flex gap-2 ml-4">
                 <button
-                  onClick={() => setShowPreviewModal(b)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300 transition-colors"
-                  title="Ver información del puesto"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleEdit(b)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
-                  title="Editar búsqueda"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-                <button
                   onClick={() => handleToggleActive(b)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
                     ${
@@ -623,12 +494,30 @@ const AdminSearchPanel: React.FC = () => {
                   {b.activa ? "Desactivar" : "Activar"}
                 </button>
                 <button
+                  onClick={() => setShowPreviewModal(previewId === b.id ? null : b)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                    showPreviewModal?.id === b.id
+                      ? "bg-purple-600 text-white border-purple-600"
+                      : "bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300"
+                  }`}
+                  title="Vista previa del candidato"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleEdit(b)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+                <button
                   onClick={() => handleDelete(b)}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
+
             </div>
           ))}
         </div>
@@ -642,100 +531,60 @@ const AdminSearchPanel: React.FC = () => {
           {busquedas.filter((b) => !b.activa).length !== 1 ? "s" : ""}
         </p>
       )}
-
-      {/* Modal de previsualización para postulantes */}
+      {/* Modal de previsualización */}
       {showPreviewModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-manzur-primary/10 flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 text-manzur-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-lg">
-                    Vista previa para postulantes
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {showPreviewModal.titulo} - {showPreviewModal.area} /{" "}
-                    {showPreviewModal.puesto}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowPreviewModal(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-purple-600"/>
+                Vista del postulante
+              </h3>
+              <button onClick={() => setShowPreviewModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5"/>
               </button>
             </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="w-4 h-4 text-manzur-primary" />
-                  <span className="text-sm">
-                    Ubicación:{" "}
+            <div className="p-5 space-y-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">{showPreviewModal.titulo}</h2>
+                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+                  {showPreviewModal.puesto && (
+                    <span className="flex items-center gap-1">
+                      <ChevronRight className="w-3.5 h-3.5"/>
+                      {showPreviewModal.puesto}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5"/>
                     <strong>{showPreviewModal.lugarResidencia}</strong>
                   </span>
                 </div>
+                <p className="text-xs text-purple-600 bg-purple-50 rounded px-2 py-1 mt-2 inline-block">
+                  ⚠️ El área ({showPreviewModal.area}) no es visible para el postulante
+                </p>
               </div>
-
               {showPreviewModal.acercaDelPuesto && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-manzur-primary" />
-                    Sobre el puesto
-                  </h4>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl">
-                    {showPreviewModal.acercaDelPuesto}
-                  </div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Acerca del puesto</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{showPreviewModal.acercaDelPuesto}</p>
                 </div>
               )}
-
               {showPreviewModal.principalesResponsabilidades && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-manzur-primary" />
-                    Principales responsabilidades
-                  </h4>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl">
-                    {showPreviewModal.principalesResponsabilidades}
-                  </div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Principales responsabilidades</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{showPreviewModal.principalesResponsabilidades}</p>
                 </div>
               )}
-
               {showPreviewModal.requisitos && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <ListChecks className="w-4 h-4 text-manzur-primary" />
-                    Requisitos
-                  </h4>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl">
-                    {showPreviewModal.requisitos}
-                  </div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Requisitos</h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{showPreviewModal.requisitos}</p>
                 </div>
               )}
-
-              {!showPreviewModal.acercaDelPuesto &&
-                !showPreviewModal.principalesResponsabilidades &&
-                !showPreviewModal.requisitos && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>
-                      No hay información detallada disponible para este puesto.
-                    </p>
-                    <p className="text-sm mt-1">
-                      Puede editar la búsqueda para agregar esta información.
-                    </p>
-                  </div>
-                )}
             </div>
-
-            <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 flex-shrink-0">
-              <button
-                onClick={() => setShowPreviewModal(null)}
-                className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
+            <div className="p-5 border-t border-gray-200">
+              <button onClick={() => setShowPreviewModal(null)}
+                className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-sm transition-colors">
                 Cerrar
               </button>
             </div>
@@ -746,4 +595,5 @@ const AdminSearchPanel: React.FC = () => {
   );
 };
 
+// ✅ EXPORT DEFAULT - Esto es lo que necesitas
 export default AdminSearchPanel;
