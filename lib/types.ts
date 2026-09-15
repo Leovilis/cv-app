@@ -81,8 +81,32 @@ export interface CV {
   repostulacionDescartado?: boolean;
   motivoDescarteAnterior?: string;
 
-  // Historial de estados
+   // Historial
   historialEstados?: HistorialEstado[];
+  historialInstancias?: HistorialInstancia[];
+}
+
+export interface HistorialEstado {
+  estado: string;
+  fecha: string;
+  motivo?: string;
+  notas?: string;
+  realizadoPor?: string;
+}
+
+export interface HistorialInstancia {
+  id: string;
+  fecha: string;
+  instancia:
+    | "ENTREVISTA_RRHH"
+    | "ENTREVISTA_AREA_TECNICA"
+    | "TERNA"
+    | "SELECCIONADO"
+    | "QUITADO_PROCESO";
+  puntuacion?: number;
+  motivo?: string;
+  notas?: string;
+  realizadoPor: string;
 }
 
 export interface PuestoPostulado {
