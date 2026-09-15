@@ -14,7 +14,7 @@ export interface CV {
   // Residencia
   provincia: string;
   departamento: string;
-  lugarResidencia?: string;          // legacy — CVs cargados antes del cambio a provincia/departamento
+  lugarResidencia?: string; // legacy — CVs cargados antes del cambio a provincia/departamento
 
   // Área y puesto postulado por el candidato
   area: string;
@@ -147,72 +147,94 @@ export interface CVFormData {
 
 // ─── Tipos del panel admin ────────────────────────────────────────────────────
 export type TabType =
-  | 'todos'
-  | 'entrevistaRRHH'
-  | 'entrevistaAreaTecnica'
-  | 'terna'
-  | 'seleccionados'
-  | 'descartados';
+  | "todos"
+  | "entrevistaRRHH"
+  | "entrevistaAreaTecnica"
+  | "terna"
+  | "seleccionados"
+  | "descartados";
 
-export type ExamType = 'fisico' | 'psicotecnico';
+export type ExamType = "fisico" | "psicotecnico";
 
-export type ExamResultado = 'Apto' | 'Apto con observaciones' | 'No Apto' | '';
+export type ExamResultado = "Apto" | "Apto con observaciones" | "No Apto" | "";
 
-export type NivelFormacion = 'Secundario' | 'Terciario' | 'Universitario' | 'Formación Superior';
+export type NivelFormacion =
+  | "Secundario"
+  | "Terciario"
+  | "Universitario"
+  | "Formación Superior";
 
 export type EstadoSeleccion =
-  | 'En Curso'
-  | 'Entrevista RRHH'
-  | 'Entrevista Área Técnica'
-  | 'Terna Preseleccionados'
-  | 'Seleccionado'
-  | 'Descartado'
-  | 'Quitado del Proceso'
-  | 'Aprobado'
-  | 'Rechazado'
-  | 'Contratado';
+  | "En Curso"
+  | "Entrevista RRHH"
+  | "Entrevista Área Técnica"
+  | "Terna Preseleccionados"
+  | "Seleccionado"
+  | "Descartado"
+  | "Quitado del Proceso"
+  | "Aprobado"
+  | "Rechazado"
+  | "Contratado";
 
 // ─── Constantes exportadas ────────────────────────────────────────────────────
 export const NIVELES_FORMACION = [
-  'Secundario',
-  'Terciario',
-  'Universitario',
-  'Formación Superior',
+  "Secundario",
+  "Terciario",
+  "Universitario",
+  "Formación Superior",
 ] as const;
 
 export const ESTADOS_SELECCION: string[] = [
-  'En Curso',
-  'Entrevista RRHH',
-  'Entrevista Área Técnica',
-  'Terna Preseleccionados',
-  'Seleccionado',
-  'Descartado',
-  'Quitado del Proceso',
+  "En Curso",
+  "Entrevista RRHH",
+  "Entrevista Área Técnica",
+  "Terna Preseleccionados",
+  "Seleccionado",
+  "Descartado",
+  "Quitado del Proceso",
 ];
 
 export const MOTIVOS_QUITAR_PROCESO = [
-  'No cumple con el perfil',
-  'Decidió no continuar',
-  'No se presentó',
-  'Mejor candidato seleccionado',
-  'Puesto cubierto internamente',
-  'Otro motivo',
+  "No cumple con el perfil requerido",
+  "Actitud no apta durante el proceso",
+  "Malas Referencias",
+  "Rechazó oferta",
+  "Declinó la oferta",
+  "No se presentó a la entrevista",
+  "Información falsa o inconsistente",
+  "Perfil sobrecalificado",
+  "Perfil insuficiente",
+  "Cambio de requisitos del puesto",
+  "Otro motivo",
 ] as const;
 
 export const MOTIVOS_DESCARTE = [
-  'Declinó la oferta a último momento',
-  'No se presentó a la entrevista',
-  'No cumple con el perfil requerido',
-  'Actitud no apta durante el proceso',
-  'Información falsa o inconsistente',
-  'Otro motivo',
+  "Declinó la oferta a último momento",
+  "No se presentó a la entrevista",
+  "Perfil no se adapta",
+  "No cumple con el perfil requerido",
+  "Actitud no apta durante el proceso",
+  "Malas Referencias",
+  "Rechazó oferta",
+  "No apto EPO",
+  "No apto psicológico",
+  "Información falsa o inconsistente",
+  "Otro motivo",
 ] as const;
 
 export interface MeetingData {
   date: string;
   time: string;
-  platform: 'meet' | 'zoom' | 'teams';
+  platform: "meet" | "zoom" | "teams";
   notes: string;
+}
+
+export interface ReferenciaEntry {
+  empresa: string;
+  contacto: string;
+  cargo: string;
+  telefono: string;
+  comentario: string;
 }
 
 export interface APIResponse<T = any> {
