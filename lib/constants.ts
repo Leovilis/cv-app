@@ -6,6 +6,8 @@ export const EXAM_BADGE: Record<ExamType, { bg: string; border: string; text: st
   fisico: { bg: 'bg-blue-100', border: 'border-blue-400', text: 'text-blue-800', label: 'Examen Físico' },
   psicotecnico: { bg: 'bg-green-100', border: 'border-green-400', text: 'text-green-800', label: 'Examen Psicotécnico' },
 };
+// lib/constants.ts
+
 
 // Configuración de resultados de exámenes
 export const RESULTADO_CONFIG: Record<Exclude<ExamResultado, ''>, { bg: string; border: string; text: string; icon: string }> = {

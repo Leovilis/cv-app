@@ -190,6 +190,15 @@ export const ESTADOS_SELECCION: string[] = [
   'Quitado del Proceso',
 ];
 
+export const MOTIVOS_QUITAR_PROCESO = [
+  'No cumple con el perfil',
+  'Decidió no continuar',
+  'No se presentó',
+  'Mejor candidato seleccionado',
+  'Puesto cubierto internamente',
+  'Otro motivo',
+] as const;
+
 export const MOTIVOS_DESCARTE = [
   'Declinó la oferta a último momento',
   'No se presentó a la entrevista',
