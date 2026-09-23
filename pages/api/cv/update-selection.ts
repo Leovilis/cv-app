@@ -1,7 +1,6 @@
 // pages/api/cv/update-selection.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]";
+import { requireAdmin } from "@/lib/auth";
 import { getFirestore } from "@/lib/firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -13,13 +12,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const session = await getServerSession(req, res, authOptions);
-  if (!session || !session.user) {
-    return res.status(401).json({ error: "No autorizado" });
-  }
-  if (session.user.email !== "sistemas@ddonpedrosrl.com") {
-    return res.status(403).json({ error: "Acceso denegado" });
-  }
+  const session = await requireAdmin(req, res);
+  if (!session) return;
 
   try {
     const {
