@@ -34,6 +34,8 @@ interface FormState extends CVFormData {
   departamento: string;
 }
 
+const MAX_CV_SIZE = 500 * 1024; // 500 KB (igual que el límite del servidor)
+
 export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState<FormState>({
     nombre: "",
@@ -281,12 +283,30 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
       fd.append("fechaAceptacion", new Date().toISOString());
       fd.append("cv", formData.cv!);
 
-      const response = await fetch("/api/cv/upload", {
-        method: "POST",
-        body: fd,
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Error al subir el CV");
+      let response: Response;
+      try {
+        response = await fetch("/api/cv/upload", {
+          method: "POST",
+          body: fd,
+        });
+      } catch {
+        // Error de red: no llegó respuesta del servidor ("Failed to fetch")
+        throw new Error(
+          "No se pudo enviar el CV. Revisá tu conexión a internet y, si elegiste el archivo desde Drive, WhatsApp o la nube, descargalo primero al celular y volvé a elegirlo desde la carpeta Descargas.",
+        );
+      }
+      if (response.status === 413) {
+        throw new Error(
+          `El archivo es demasiado grande. El máximo es ${MAX_CV_SIZE / 1024} KB.`,
+        );
+      }
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        /* respuesta sin JSON */
+      }
+      if (!response.ok) throw new Error(data.error || "Error al subir el CV. Intentá de nuevo.");
 
       setFormData({
         nombre: "",
@@ -315,12 +335,23 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setFormData({ ...formData, cv: file });
-      setErrors({ ...errors, cv: undefined });
-    } else {
+    if (!file || file.type !== "application/pdf") {
+      setFormData({ ...formData, cv: null });
       setErrors({ ...errors, cv: "Solo se permiten archivos PDF" });
+      e.target.value = "";
+      return;
     }
+    if (file.size > MAX_CV_SIZE) {
+      setFormData({ ...formData, cv: null });
+      setErrors({
+        ...errors,
+        cv: `El PDF pesa ${(file.size / 1024).toFixed(0)} KB y el máximo es ${MAX_CV_SIZE / 1024} KB. Comprimilo (por ejemplo en ilovepdf.com) y volvé a elegirlo.`,
+      });
+      e.target.value = "";
+      return;
+    }
+    setFormData({ ...formData, cv: file });
+    setErrors({ ...errors, cv: undefined });
   };
 
   const inputCls =
