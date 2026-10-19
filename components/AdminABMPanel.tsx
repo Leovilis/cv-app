@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { puestoKey } from '@/lib/puestos';
 import { Plus, Pencil, Trash2, X, Check, RefreshCw, ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
 import { Area } from '@/lib/types';
 
@@ -17,7 +18,7 @@ const AreaForm: React.FC<{
   const addPuesto = () => {
     const p = nuevoPuesto.trim();
     if (!p) return;
-    if (puestos.includes(p)) { setError('Ese puesto ya existe en esta área'); return; }
+    if (puestos.some(x => puestoKey(x) === puestoKey(p))) { setError('Ese puesto ya existe en esta área'); return; }
     setPuestos(prev => [...prev, p]);
     setNuevoPuesto('');
     setError('');

@@ -31,6 +31,7 @@ import { ReferencesModal } from "./ReferencesModal";
 import AdminSearchPanel from "@/components/AdminSearchPanel";
 import { AdminABMPanel } from "@/components/AdminABMPanel";
 import { useSession } from "next-auth/react";
+import { getCvArea, getCvPuesto, dedupePuestos, puestoKey } from "@/lib/puestos";
 
 type AdminMainTab = "gestion" | "busquedas" | "abm";
 
@@ -38,7 +39,7 @@ const getAreaPrincipal = (cv: CV) => {
   if ((cv as any).areaAsignada) {
     return (cv as any).areaAsignada;
   }
-  return cv.area || "Sin área";
+  return getCvArea(cv) || "Sin área";
 };
 
 // Tipo extendido para la vista de terna (calculado localmente, no viene de Firestore)
@@ -401,7 +402,7 @@ const handleRegistrarRevision = async (cvId: string) => {
   // Filtros y cálculos para CVs
   const base = (list: CV[]) =>
     list.filter((cv) => {
-      if (selectedArea !== "Todos" && cv.area?.toLocaleLowerCase() !== selectedArea.toLowerCase()) return false;
+      if (selectedArea !== "Todos" && puestoKey(getCvArea(cv)) !== puestoKey(selectedArea)) return false;
       if (
         selectedFormacion !== "Todos" &&
         cv.nivelFormacion !== selectedFormacion
@@ -466,25 +467,20 @@ const handleRegistrarRevision = async (cvId: string) => {
               ? seleccionados
               : descartados;
 
-  const puestosDisponibles = Array.from(
-    new Set(
-      cvsSinFiltroPuesto
-        .map((cv) => cv.puestoSeleccionado || cv.subArea || "")
-        .filter(Boolean),
-    ),
-  ).sort();
+  // Puestos sin duplicados MAYÚSCULAS/minúsculas (se conserva la versión en minúsculas)
+  const puestosDisponibles = dedupePuestos(cvsSinFiltroPuesto.map(getCvPuesto));
 
   const displayCvs =
     selectedPuesto !== "Todos"
       ? cvsSinFiltroPuesto.filter(
           (cv) =>
-            (cv.puestoSeleccionado || cv.subArea || "") === selectedPuesto,
+            puestoKey(getCvPuesto(cv)) === puestoKey(selectedPuesto),
         )
       : cvsSinFiltroPuesto;
 
   const groupedCvs = displayCvs.reduce(
     (acc, cv) => {
-      const area = cv.area || "Genérico";
+      const area = getCvArea(cv) || "Genérico";
       if (!acc[area]) acc[area] = [];
       acc[area].push(cv);
       return acc;

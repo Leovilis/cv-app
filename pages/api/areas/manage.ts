@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { getFirestore } from '@/lib/firebase-admin';
+import { dedupePuestos } from '@/lib/puestos';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
@@ -23,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const docRef = await db.collection('areas').add({
       nombre:    nombre.trim(),
-      puestos:   Array.isArray(puestos) ? puestos.map((p: string) => p.trim()).filter(Boolean) : [],
+      puestos:   Array.isArray(puestos) ? dedupePuestos(puestos.filter((p: unknown) => typeof p === 'string')) : [],
       creadaAt:  new Date().toISOString(),
       creadaPor: session.user.email,
     });
@@ -41,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await db.collection('areas').doc(id).update({
       nombre:  nombre.trim(),
-      puestos: Array.isArray(puestos) ? puestos.map((p: string) => p.trim()).filter(Boolean) : [],
+      puestos: Array.isArray(puestos) ? dedupePuestos(puestos.filter((p: unknown) => typeof p === 'string')) : [],
     });
     return res.status(200).json({ success: true });
   }

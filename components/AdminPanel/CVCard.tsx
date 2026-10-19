@@ -25,6 +25,7 @@ import { EXAM_BADGE, RESULTADO_CONFIG } from "@/lib/constants";
 import { CVCardProps } from "./types";
 import { InterviewScheduler } from "./InterviewScheduler";
 import { SelectionEditor } from "./SelectionEditor";
+import { limpiarPuesto } from "@/lib/puestos";
 
 const getAreaPrincipal = (cv: CV) => {
   if ((cv as any).areaAsignada) return (cv as any).areaAsignada;
@@ -35,17 +36,17 @@ const getAreaPrincipal = (cv: CV) => {
 const getPuestoAplicacion = (cv: CV) => {
   // Si tiene puesto seleccionado por admin, mostrarlo como "Asignado"
   if (cv.puestoSeleccionado) {
-    return { texto: cv.puestoSeleccionado, tipo: "asignado" };
+    return { texto: limpiarPuesto(cv.puestoSeleccionado), tipo: "asignado" };
   }
   // Si viene de búsqueda activa, mostrar el puesto de la búsqueda
   if (
     cv.busquedasInfo?.[0]?.puesto
   ) {
-    return { texto: cv.busquedasInfo[0].puesto!, tipo: "busqueda" };
+    return { texto: limpiarPuesto(cv.busquedasInfo[0].puesto), tipo: "busqueda" };
   }
   // Si es postulación manual
   if (cv.subArea) {
-    return { texto: cv.subArea, tipo: "manual" };
+    return { texto: limpiarPuesto(cv.subArea), tipo: "manual" };
   }
   return { texto: "No especificado", tipo: "ninguno" };
 };
@@ -132,7 +133,7 @@ export const CVCard: React.FC<CVCardProps> = ({
     const sucursal = "";
     const nombreCompleto = `${cv.nombre} ${cv.apellido}`;
     const dni = cv.dni;
-    const puesto = cv.puestoSeleccionado || cv.subArea || "No especificado";
+    const puesto = limpiarPuesto(cv.puestoSeleccionado || cv.subArea) || "No especificado";
     const fechaEPO =
       new Date().toLocaleDateString("es-AR", {
         day: "2-digit",
@@ -362,16 +363,16 @@ Desde ya muchas gracias. Saludos!`;
                   <span className="font-medium">Puesto:</span>{" "}
                   {cv.puestoSeleccionado ? (
                     <span className="text-green-600">
-                      {cv.puestoSeleccionado}{" "}
+                      {limpiarPuesto(cv.puestoSeleccionado)}{" "}
                       <span className="text-xs">(asignado)</span>
                     </span>
                   ) : cv.busquedasInfo?.[0]?.puesto ? (
                     <span className="text-amber-600">
-                      {cv.busquedasInfo[0].puesto}{" "}
+                      {limpiarPuesto(cv.busquedasInfo[0].puesto)}{" "}
                       <span className="text-xs">(búsqueda activa)</span>
                     </span>
                   ) : cv.subArea ? (
-                    <span>{cv.subArea}</span>
+                    <span>{limpiarPuesto(cv.subArea)}</span>
                   ) : (
                     <span className="text-gray-400">No especificado</span>
                   )}

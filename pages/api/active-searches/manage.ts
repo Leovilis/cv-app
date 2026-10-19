@@ -36,7 +36,15 @@ export default async function handler(
 
   // POST - Crear nueva búsqueda
   if (method === "POST") {
-    const { titulo, area, puesto, lugarResidencia } = req.body;
+    const {
+      titulo,
+      area,
+      puesto,
+      lugarResidencia,
+      acercaDelPuesto,
+      principalesResponsabilidades,
+      requisitos,
+    } = req.body;
 
     if (!titulo || !area || !puesto || !lugarResidencia) {
       return res.status(400).json({ error: "Faltan campos requeridos" });
@@ -48,6 +56,9 @@ export default async function handler(
         area,
         puesto,
         lugarResidencia,
+        acercaDelPuesto: acercaDelPuesto || "",
+        principalesResponsabilidades: principalesResponsabilidades || "",
+        requisitos: requisitos || "",
         activa: true,
         creadaAt: new Date().toISOString(),
         creadaPor: session.user.email,
@@ -68,7 +79,17 @@ export default async function handler(
 
   // PUT - Actualizar búsqueda
   if (method === "PUT") {
-    const { id, titulo, area, puesto, lugarResidencia, activa } = req.body;
+    const {
+      id,
+      titulo,
+      area,
+      puesto,
+      lugarResidencia,
+      activa,
+      acercaDelPuesto,
+      principalesResponsabilidades,
+      requisitos,
+    } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "Se requiere ID" });
@@ -82,6 +103,11 @@ export default async function handler(
       if (lugarResidencia !== undefined)
         updateData.lugarResidencia = lugarResidencia;
       if (activa !== undefined) updateData.activa = activa;
+      if (acercaDelPuesto !== undefined)
+        updateData.acercaDelPuesto = acercaDelPuesto;
+      if (principalesResponsabilidades !== undefined)
+        updateData.principalesResponsabilidades = principalesResponsabilidades;
+      if (requisitos !== undefined) updateData.requisitos = requisitos;
       updateData.actualizadaAt = new Date().toISOString();
       updateData.actualizadaPor = session.user.email;
 

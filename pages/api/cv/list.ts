@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { getFirestore } from "@/lib/firebase-admin";
 import { CV } from "@/lib/types";
+import { getCvArea, puestoKey } from "@/lib/puestos";
 
 export default async function handler(
   req: NextApiRequest,
@@ -52,7 +53,7 @@ export default async function handler(
     // Filtrar por área
     if (area && area !== "Todos") {
       const beforeFilter = cvs.length;
-      cvs = cvs.filter((cv) => cv.area === area);
+      cvs = cvs.filter((cv) => puestoKey(getCvArea(cv)) === puestoKey(area));
       console.log(
         `🔍 Filtro por área '${area}': ${beforeFilter} → ${cvs.length} CVs`,
       );

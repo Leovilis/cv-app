@@ -1,5 +1,6 @@
 // components/AdminSearchPanel.tsx
 import React, { useState, useEffect } from "react";
+import { puestoKey, limpiarPuesto } from "@/lib/puestos";
 import {
   Plus,
   Trash2,
@@ -131,7 +132,11 @@ const AdminSearchPanel: React.FC = () => {
     setForm({
       titulo: b.titulo,
       area: b.area || "",
-      puesto: b.puesto || "",
+      // Ajustar al nombre del puesto en el ABM (evita que no coincida por mayúsculas)
+      puesto:
+        (areasDisponibles.find((a) => a.nombre === b.area)?.puestos || []).find(
+          (p) => puestoKey(p) === puestoKey(b.puesto),
+        ) || limpiarPuesto(b.puesto),
       lugarResidencia: b.lugarResidencia || "",
       acercaDelPuesto: b.acercaDelPuesto || "",
       principalesResponsabilidades: b.principalesResponsabilidades || "",
