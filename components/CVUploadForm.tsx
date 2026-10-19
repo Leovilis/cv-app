@@ -460,8 +460,8 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
               // Si está borrando, no reformatear (permite borrar la "/")
               const value =
                 raw.length < formData.fechaNacimiento.length
-                  ? raw.replace(/[^\d/]/g, "")
-                  : formatFecha(raw);
+                  ? raw.replace(/[^\d/]/g, "").slice(0, 10)
+                  : formatFecha(raw).slice(0, 10);
               setFormData({ ...formData, fechaNacimiento: value });
             }}
             className={inputCls}
