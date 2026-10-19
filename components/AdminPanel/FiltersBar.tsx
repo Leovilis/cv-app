@@ -16,6 +16,10 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
   selectedPuesto,
   onPuestoChange,
   puestosDisponibles,
+  fechaDesde,
+  fechaHasta,
+  onFechaDesdeChange,
+  onFechaHastaChange,
   onRefresh,
 }) => {
   const [areaNames, setAreaNames]                   = useState<string[]>([]);
@@ -125,6 +129,25 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
           </select>
         </div>
       )}
+
+      {/* Fecha de carga */}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="font-medium text-manzur-primary text-sm">Cargado desde:</label>
+        <input type="date" value={fechaDesde} max={fechaHasta || undefined}
+          onChange={e => onFechaDesdeChange(e.target.value)}
+          className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg"/>
+        <label className="font-medium text-manzur-primary text-sm">hasta:</label>
+        <input type="date" value={fechaHasta} min={fechaDesde || undefined}
+          onChange={e => onFechaHastaChange(e.target.value)}
+          className="px-3 py-2 text-sm border border-manzur-secondary rounded-lg"/>
+        {(fechaDesde || fechaHasta) && (
+          <button type="button"
+            onClick={() => { onFechaDesdeChange(''); onFechaHastaChange(''); }}
+            className="text-xs text-gray-500 hover:text-red-600 underline">
+            Limpiar fechas
+          </button>
+        )}
+      </div>
 
       <button onClick={onRefresh}
         className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-lg bg-manzur-primary hover:bg-manzur-secondary transition-colors ml-auto">

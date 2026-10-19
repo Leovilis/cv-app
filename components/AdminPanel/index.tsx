@@ -57,6 +57,9 @@ export const AdminPanel: React.FC = () => {
   const [selectedResidencia, setSelectedResidencia] = useState("Todos");
   const [selectedPuesto, setSelectedPuesto] = useState("Todos");
   const [filterRevision, setFilterRevision] = useState<"todos"|"revisados"|"sinRevisar">("todos");
+  // Filtro por fecha de carga del CV (formato YYYY-MM-DD)
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingCV, setEditingCV] = useState<string | null>(null);
   const [schedulingCV, setSchedulingCV] = useState<string | null>(null);
@@ -413,10 +416,21 @@ const handleRegistrarRevision = async (cvId: string) => {
         cv.lugarResidencia !== selectedResidencia
       )
         return false;
-      if (filterRevision === "revisados" && !isRevisado(cv)) return false;
-      if (filterRevision === "sinRevisar" && isRevisado(cv)) return false;
+      if (fechaDesde || fechaHasta) {
+        const fecha = cv.uploadedAt ? new Date(cv.uploadedAt) : null;
+        if (!fecha || isNaN(fecha.getTime())) return false;
+        if (fechaDesde && fecha < new Date(`${fechaDesde}T00:00:00`)) return false;
+        if (fechaHasta && fecha > new Date(`${fechaHasta}T23:59:59.999`)) return false;
+      }
       return true;
     });
+
+  // El filtro Revisados / Sin revisar aplica solo a la pestaña "Todos los CVs"
+  const filtroRevision = (cv: CV) => {
+    if (filterRevision === "revisados") return isRevisado(cv);
+    if (filterRevision === "sinRevisar") return !isRevisado(cv);
+    return true;
+  };
 
   const lugaresResidencia = useMemo(() => {
     const lugares = new Set<string>();
@@ -433,7 +447,7 @@ const handleRegistrarRevision = async (cvId: string) => {
         cv.estadoSeleccion !== "Descartado" &&
         cv.estadoSeleccion !== "Quitado del Proceso",
     ),
-  );
+  ).filter(filtroRevision);
   const entRRHH = base(
     cvs.filter((cv) => cv.estadoSeleccion === "Entrevista RRHH"),
   );
@@ -769,6 +783,10 @@ const handleRegistrarRevision = async (cvId: string) => {
               onPuestoChange={setSelectedPuesto}
               puestosDisponibles={puestosDisponibles}
               lugaresResidencia={lugaresResidencia}
+              fechaDesde={fechaDesde}
+              fechaHasta={fechaHasta}
+              onFechaDesdeChange={setFechaDesde}
+              onFechaHastaChange={setFechaHasta}
               onRefresh={fetchCVs}
             />
           </div>
@@ -881,6 +899,8 @@ const handleRegistrarRevision = async (cvId: string) => {
               <div key={area} className="mb-6 sm:mb-8">
                 <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 pb-2 border-b-2 border-manzur-secondary text-manzur-primary px-2 sm:px-0 flex flex-wrap items-center gap-2">
                   <span>{area} ({areaCvs.length})</span>
+                  {activeTab === "todos" && (
+                    <>
                   <button
                     onClick={() => {
                       if (filterRevision === "revisados" && selectedArea === area) {
@@ -913,6 +933,8 @@ const handleRegistrarRevision = async (cvId: string) => {
                   >
                     <EyeOff className="w-3 h-3"/>{areaCvs.filter(c => !isRevisado(c)).length} sin revisar
                   </button>
+                    </>
+                  )}
                 </h3>
                 <div className="space-y-3 sm:space-y-4">
                   {areaCvs.map((cv) => (

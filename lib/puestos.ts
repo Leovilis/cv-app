@@ -7,14 +7,24 @@ const SIGLAS = new Set([
   "HSE", "IVA", "AFIP", "ARCA", "PYME", "CEO", "CFO", "CTO", "SRL", "SA",
 ]);
 
-/** Clave de comparación: sin acentos, minúsculas, espacios simples. */
+// Abreviaturas que se expanden (agregar acá si aparecen otras)
+const ABREVIATURAS: Record<string, string> = {
+  adm: "administrativo",
+  "adm.": "administrativo",
+};
+
+const expandirAbreviaturas = (s: string): string =>
+  s
+    .split(" ")
+    .map((p) => ABREVIATURAS[p.toLowerCase()] ?? p)
+    .join(" ");
+
+/** Clave de comparación: sin acentos, minúsculas, espacios simples y abreviaturas expandidas. */
 export const puestoKey = (s: string | null | undefined): string =>
-  (s || "")
+  expandirAbreviaturas((s || "").trim().replace(/\s+/g, " "))
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 /** true si el texto está todo en mayúsculas (ej: "ANALISTA CONTABLE"). */
 export const esTodoMayusculas = (s: string): boolean =>
@@ -32,16 +42,22 @@ export const aFormatoOracion = (s: string): string => {
     .join(" ");
 };
 
-/** Devuelve la versión "limpia" de un puesto: si viene en mayúsculas, la pasa a minúsculas. */
+/**
+ * Devuelve la versión "limpia" de un puesto:
+ * expande abreviaturas ("Adm" → "Administrativo") y lo deja en minúsculas
+ * con la primera letra en mayúscula ("Analista Contable" → "Analista contable").
+ */
 export const limpiarPuesto = (s: string | null | undefined): string => {
   const t = (s || "").trim().replace(/\s+/g, " ");
   if (!t) return "";
-  return esTodoMayusculas(t) ? aFormatoOracion(t) : t;
+  return aFormatoOracion(expandirAbreviaturas(t));
 };
 
+const cantidadAcentos = (s: string) => (s.match(/[áéíóúüñÁÉÍÓÚÜÑ]/g) || []).length;
+
 /**
- * Elimina duplicados que solo difieren en mayúsculas/acentos.
- * Conserva la variante con minúsculas; si solo existe en mayúsculas, la convierte.
+ * Elimina duplicados que solo difieren en mayúsculas, acentos o abreviaturas
+ * ("Adm contable" = "Administrativo Contable") y los deja en minúsculas.
  */
 export const dedupePuestos = (lista: (string | null | undefined)[]): string[] => {
   const porClave = new Map<string, string>();
@@ -52,8 +68,8 @@ export const dedupePuestos = (lista: (string | null | undefined)[]): string[] =>
     const actual = porClave.get(k);
     if (!actual) {
       porClave.set(k, t);
-    } else if (esTodoMayusculas(actual) && !esTodoMayusculas(t)) {
-      porClave.set(k, t); // preferir la versión en minúsculas
+    } else if (cantidadAcentos(t) > cantidadAcentos(actual)) {
+      porClave.set(k, t); // preferir la versión bien acentuada ("Técnico" sobre "Tecnico")
     }
   }
   return Array.from(porClave.values())

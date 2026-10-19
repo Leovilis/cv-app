@@ -50,6 +50,10 @@ export interface FiltersBarProps {
   onPuestoChange: (puesto: string) => void;
   puestosDisponibles: string[];
   lugaresResidencia: string[];
+  fechaDesde: string;
+  fechaHasta: string;
+  onFechaDesdeChange: (fecha: string) => void;
+  onFechaHastaChange: (fecha: string) => void;
   onRefresh: () => void;
 }
 
