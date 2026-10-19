@@ -121,6 +121,81 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
     }));
   };
 
+  // Formatea la fecha mientras se escribe: agrega "/" automáticamente
+  // y completa con 0 a la izquierda el día y el mes (1-9 → 01-09).
+  const formatFecha = (input: string): string => {
+    let dia = "";
+    let mes = "";
+    let anio = "";
+    let etapa = 0; // 0 = día, 1 = mes, 2 = año
+    const chars = input.split("");
+
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+
+      if (ch === "/") {
+        if (etapa === 0 && dia.length === 1 && dia !== "0") {
+          dia = "0" + dia;
+          etapa = 1;
+        } else if (etapa === 1 && mes.length === 1 && mes !== "0") {
+          mes = "0" + mes;
+          etapa = 2;
+        }
+        continue;
+      }
+      if (!/\d/.test(ch)) continue;
+
+      if (etapa === 0) {
+        if (dia.length === 0) {
+          if (ch > "3") {
+            dia = "0" + ch; // 4-9 → 04-09
+            etapa = 1;
+          } else {
+            dia = ch;
+          }
+        } else {
+          const n = dia + ch;
+          if (n === "00") continue;
+          if (parseInt(n, 10) > 31) {
+            dia = "0" + dia; // ej: "3" + "5" → 03/5...
+            etapa = 1;
+            i--; // reprocesar el dígito como mes
+          } else {
+            dia = n;
+            etapa = 1;
+          }
+        }
+      } else if (etapa === 1) {
+        if (mes.length === 0) {
+          if (ch > "1") {
+            mes = "0" + ch; // 2-9 → 02-09
+            etapa = 2;
+          } else {
+            mes = ch;
+          }
+        } else {
+          const n = mes + ch;
+          if (n === "00") continue;
+          if (parseInt(n, 10) > 12) {
+            mes = "0" + mes; // ej: "1" + "9" → 01/9...
+            etapa = 2;
+            i--; // reprocesar el dígito como año
+          } else {
+            mes = n;
+            etapa = 2;
+          }
+        }
+      } else if (anio.length < 4) {
+        anio += ch;
+      }
+    }
+
+    let out = dia;
+    if (etapa >= 1) out += "/" + mes;
+    if (etapa >= 2) out += "/" + anio;
+    return out;
+  };
+
   const validateDate = (date: string) => {
     const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
     if (!regex.test(date)) return false;
@@ -378,10 +453,17 @@ export const CVUploadForm: React.FC<CVUploadFormProps> = ({ onSuccess }) => {
             type="text"
             inputMode="numeric"
             placeholder="25/12/1990"
+            maxLength={10}
             value={formData.fechaNacimiento}
-            onChange={(e) =>
-              setFormData({ ...formData, fechaNacimiento: e.target.value })
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              // Si está borrando, no reformatear (permite borrar la "/")
+              const value =
+                raw.length < formData.fechaNacimiento.length
+                  ? raw.replace(/[^\d/]/g, "")
+                  : formatFecha(raw);
+              setFormData({ ...formData, fechaNacimiento: value });
+            }}
             className={inputCls}
             disabled={loading}
           />
