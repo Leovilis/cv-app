@@ -2,6 +2,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirestore } from '@/lib/firebase-admin';
 import { BusquedaActiva } from '@/lib/types';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
+import { isAdminEmail } from '@/lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -11,11 +14,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const db = getFirestore();
 
+    // ?todas=1 → el admin ve también las búsquedas dadas de baja (inactivas).
+    // El formulario público solo recibe las activas.
+    let incluirInactivas = false;
+    if (req.query.todas === '1') {
+      const session = await getServerSession(req, res, authOptions);
+      incluirInactivas = isAdminEmail(session?.user?.email);
+    }
+
     // Sin orderBy para evitar índice compuesto — ordenamos en memoria
-    const snapshot = await db
-      .collection('busquedas_activas')
-      .where('activa', '==', true)
-      .get();
+    const coleccion = db.collection('busquedas_activas');
+    const snapshot = incluirInactivas
+      ? await coleccion.get()
+      : await coleccion.where('activa', '==', true).get();
 
     const busquedas: BusquedaActiva[] = snapshot.docs
       .map(doc => ({ id: doc.id, ...(doc.data() as Omit<BusquedaActiva, 'id'>) }))

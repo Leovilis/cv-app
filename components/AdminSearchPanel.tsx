@@ -46,7 +46,7 @@ const AdminSearchPanel: React.FC = () => {
   const fetchBusquedas = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/active-searches/list");
+      const res = await fetch("/api/active-searches/list?todas=1");
       const data = await res.json();
       setBusquedas(data.busquedas || []);
     } catch {
