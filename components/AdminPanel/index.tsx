@@ -1,5 +1,5 @@
 // components/AdminPanel/index.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Calendar,
   Mail,
@@ -80,20 +80,27 @@ export const AdminPanel: React.FC = () => {
     setMobileMenuOpen(false);
   }, [activeMainTab]);
 
-  // Función para cargar CVs
+  // Fecha de carga del CV más reciente que tenemos (para pedir solo los nuevos)
+  const ultimaCargaRef = useRef<string>("");
+
+  const fechaMasReciente = (lista: CV[]) =>
+    lista.reduce(
+      (max, cv) => (cv.uploadedAt && cv.uploadedAt > max ? cv.uploadedAt : max),
+      "",
+    );
+
+  // Carga todos los CVs. Los filtros se aplican en el navegador,
+  // así cambiar un filtro no vuelve a leer la base.
   const fetchCVs = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (selectedArea !== "Todos") params.append("area", selectedArea);
-      if (selectedFormacion !== "Todos")
-        params.append("formacion", selectedFormacion);
-      const r = await fetch(
-        `/api/cv/list${params.toString() ? "?" + params.toString() : ""}`,
-      );
+      const r = await fetch("/api/cv/list");
       const d = await r.json();
-      if (r.ok) setCvs(d.cvs || []);
-      else alert(d.error || "Error al cargar los CVs");
+      if (r.ok) {
+        const lista: CV[] = d.cvs || [];
+        setCvs(lista);
+        ultimaCargaRef.current = fechaMasReciente(lista) || new Date().toISOString();
+      } else alert(d.error || "Error al cargar los CVs");
     } catch {
       alert("Error al cargar los CVs");
     } finally {
@@ -103,7 +110,45 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     fetchCVs();
-  }, [selectedArea, selectedFormacion]);
+  }, []);
+
+  // Cada 60 s (solo con la pestaña visible) busca CVs nuevos y los agrega a la lista
+  useEffect(() => {
+    let buscando = false;
+    const buscarNuevos = async () => {
+      if (buscando || document.visibilityState !== "visible") return;
+      const since = ultimaCargaRef.current;
+      if (!since) return;
+      buscando = true;
+      try {
+        const r = await fetch(`/api/cv/latest?since=${encodeURIComponent(since)}`);
+        if (!r.ok) return;
+        const d = await r.json();
+        const nuevos: CV[] = d.cvs || [];
+        if (nuevos.length === 0) return;
+        const ids = new Set(nuevos.map((c) => c.id));
+        const dnis = new Set(nuevos.map((c) => c.dni).filter(Boolean));
+        // Si un candidato reemplazó su CV, se quita la versión anterior (mismo DNI)
+        setCvs((prev) => [
+          ...nuevos,
+          ...prev.filter((c) => !ids.has(c.id) && !(c.dni && dnis.has(c.dni))),
+        ]);
+        const masReciente = fechaMasReciente(nuevos);
+        if (masReciente > ultimaCargaRef.current) ultimaCargaRef.current = masReciente;
+      } catch {
+        /* sin conexión: se reintenta en el próximo ciclo */
+      } finally {
+        buscando = false;
+      }
+    };
+    const intervalo = setInterval(buscarNuevos, 60_000);
+    // Al volver a la pestaña, revisar enseguida
+    document.addEventListener("visibilitychange", buscarNuevos);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", buscarNuevos);
+    };
+  }, []);
 
   // Handlers (sin cambios)
   const handleSaveRanking = async (
@@ -402,20 +447,22 @@ const handleRegistrarRevision = async (cvId: string) => {
   const isRevisado = (cv: CV) =>
     !!(cv.revisado || cv.revisadoAt || cv.fechaUltimaRevision);
 
-  // Filtros y cálculos para CVs
+  // Coincidencia de residencia: "Departamento, Provincia" o solo la provincia
+  const coincideResidencia = (cv: CV) => {
+    if (selectedResidencia === "Todos") return true;
+    const lugar = cv.lugarResidencia || "";
+    if (lugar === selectedResidencia) return true;
+    if (selectedResidencia.includes(",")) return false; // se eligió departamento
+    return (
+      cv.provincia === selectedResidencia ||
+      lugar.endsWith(`, ${selectedResidencia}`)
+    );
+  };
+
+  // Filtros visibles en todas las pestañas: Área y fechas
   const base = (list: CV[]) =>
     list.filter((cv) => {
       if (selectedArea !== "Todos" && puestoKey(getCvArea(cv)) !== puestoKey(selectedArea)) return false;
-      if (
-        selectedFormacion !== "Todos" &&
-        cv.nivelFormacion !== selectedFormacion
-      )
-        return false;
-      if (
-        selectedResidencia !== "Todos" &&
-        cv.lugarResidencia !== selectedResidencia
-      )
-        return false;
       if (fechaDesde || fechaHasta) {
         const fecha = cv.uploadedAt ? new Date(cv.uploadedAt) : null;
         if (!fecha || isNaN(fecha.getTime())) return false;
@@ -425,8 +472,11 @@ const handleRegistrarRevision = async (cvId: string) => {
       return true;
     });
 
-  // El filtro Revisados / Sin revisar aplica solo a la pestaña "Todos los CVs"
-  const filtroRevision = (cv: CV) => {
+  // Formación, Residencia y Revisados / Sin revisar solo se muestran
+  // (y por lo tanto solo filtran) en la pestaña "Todos los CVs"
+  const filtrosSoloTodos = (cv: CV) => {
+    if (selectedFormacion !== "Todos" && cv.nivelFormacion !== selectedFormacion) return false;
+    if (!coincideResidencia(cv)) return false;
     if (filterRevision === "revisados") return isRevisado(cv);
     if (filterRevision === "sinRevisar") return !isRevisado(cv);
     return true;
@@ -447,7 +497,7 @@ const handleRegistrarRevision = async (cvId: string) => {
         cv.estadoSeleccion !== "Descartado" &&
         cv.estadoSeleccion !== "Quitado del Proceso",
     ),
-  ).filter(filtroRevision);
+  ).filter(filtrosSoloTodos);
   const entRRHH = base(
     cvs.filter((cv) => cv.estadoSeleccion === "Entrevista RRHH"),
   );
